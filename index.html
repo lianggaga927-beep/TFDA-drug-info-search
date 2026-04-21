@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>藥品資訊查詢系統 - 食藥署資料整合</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-blue: #2563eb;
+            --secondary-blue: #3b82f6;
+            --light-blue: #dbeafe;
+            --lighter-blue: #eff6ff;
+            --dark-blue: #1e40af;
+            --bg-cream: #fefce8;
+            --bg-white: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px -3px rgba(37, 99, 235, 0.1);
+        }
+
+        body {
+            font-family: 'Noto Sans TC', 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--lighter-blue) 0%, var(--bg-white) 50%, var(--bg-cream) 100%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* Header */
+        header {
+            background: var(--bg-white);
+            border-bottom: 2px solid var(--primary-blue);
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2.5rem;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem 1.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        /* Search Section */
+        .search-section {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+            animation: fadeIn 0.6s ease-out 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .search-box {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        #searchInput {
+            flex: 1;
+            padding: 0.875rem 1.25rem;
+            font-size: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-family: 'Noto Sans TC', sans-serif;
+            transition: all 0.3s ease;
+            background: var(--bg-white);
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px var(--light-blue);
+        }
+
+        #searchBtn {
+            padding: 0.875rem 2rem;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Noto Sans TC', sans-serif;
+            box-shadow: var(--shadow-sm);
+        }
+
+        #searchBtn:hover {
+            background: var(--dark-blue);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        #searchBtn:active {
+            transform: translateY(0);
+        }
+
+        #searchBtn:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .search-hint {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+            color: var(--primary-blue);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid var(--light-blue);
+            border-top: 3px solid var(--primary-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .no-results {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .no-results-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Drug Card */
+        .drug-card {
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .drug-card:hover {
+            box-shadow: 0 12px 30px -5px rgba(37, 99, 235, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .drug-header {
+            border-bottom: 2px solid var(--lighter-blue);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .drug-name-ch {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 0.25rem;
+        }
+
+        .drug-name-en {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-style: italic;
+        }
+
+        .license-number {
+            display: inline-block;
+            background: var(--lighter-blue);
+            color: var(--primary-blue);
+            padding: 0.375rem 0.875rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .info-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .info-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: var(--primary-blue);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-label::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: var(--primary-blue);
+            border-radius: 2px;
+        }
+
+        .info-content {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            padding-left: 1rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .ingredient-item {
+            background: var(--lighter-blue);
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-blue);
+        }
+
+        /* Links Section */
+        .links-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.125rem;
+            background: var(--primary-blue);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .link-btn:hover {
+            background: var(--dark-blue);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .link-btn.secondary {
+            background: var(--bg-white);
+            color: var(--primary-blue);
+            border: 2px solid var(--primary-blue);
+        }
+
+        .link-btn.secondary:hover {
+            background: var(--lighter-blue);
+        }
+
+        /* NHI Payment Section */
+        .nhi-section {
+            background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
+            border: 2px solid #f59e0b;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .nhi-section .info-label {
+            color: #d97706;
+        }
+
+        .nhi-section .info-label::before {
+            background: #f59e0b;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 3rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            #searchBtn {
+                width: 100%;
+            }
+
+            .drug-card {
+                padding: 1.5rem;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Error Message */
+        .error-message {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>🏥 藥品資訊查詢系統</h1>
+            <p class="subtitle">整合食藥署與健保署開放資料 | 提供完整藥品許可、仿單、給付規定資訊</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="search-section">
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="請輸入藥品中文品名或英文品名 (例如: 普拿疼、Panadol)" 
+                    autocomplete="off"
+                >
+                <button id="searchBtn">🔍 搜尋</button>
+            </div>
+            <p class="search-hint">💡 支援部分關鍵字查詢,例如輸入「阿斯匹靈」或「Aspirin」</p>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在查詢藥品資料,請稍候...</p>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div id="resultsContainer"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>資料來源: 衛生福利部食品藥物管理署開放資料平台、健保署開放資料</p>
+        <p style="margin-top: 0.5rem; font-size: 0.8rem;">本系統僅供參考,實際用藥請遵循醫師或藥師指示</p>
+    </footer>
+
+    <script>
+        // 全域變數儲存API資料
+        let licenseData = [];
+        let packageData = [];
+        let imageData = [];
+        let nhiData = [];
+
+        // DOM元素
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const loading = document.getElementById('loading');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // 初始化: 載入所有API資料
+        async function loadAllData() {
+            try {
+                console.log('開始載入API資料...');
+                
+                const [licenses, packages, images, nhi] = await Promise.all([
+                    fetch('https://data.fda.gov.tw/data/opendata/export/37/json').then(r => r.json()),
+                    fetch('https://data.fda.gov.tw/data/opendata/export/39/json').then(r => r.json()),
+                    fetch('https://data.fda.gov.tw/data/opendata/export/42/json').then(r => r.json()),
+                    fetch('https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-E41001-001').then(r => r.json())
+                ]);
+
+                licenseData = licenses;
+                packageData = packages;
+                imageData = images;
+                nhiData = nhi;
+
+                console.log('所有資料載入完成');
+                console.log('許可證資料筆數:', licenseData.length);
+                console.log('仿單資料筆數:', packageData.length);
+                console.log('圖檔資料筆數:', imageData.length);
+                console.log('健保資料筆數:', nhiData.length);
+            } catch (error) {
+                console.error('載入資料時發生錯誤:', error);
+                showError('資料載入失敗,請重新整理頁面再試');
+            }
+        }
+
+        // 顯示錯誤訊息
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+            setTimeout(() => {
+                errorMessage.classList.remove('active');
+            }, 5000);
+        }
+
+        // 搜尋藥品
+        function searchDrugs() {
+            const keyword = searchInput.value.trim();
+            
+            if (!keyword) {
+                showError('請輸入藥品名稱');
+                return;
+            }
+
+            if (licenseData.length === 0) {
+                showError('資料尚未載入完成,請稍候再試');
+                return;
+            }
+
+            // 顯示載入動畫
+            loading.classList.add('active');
+            resultsSection.classList.remove('active');
+            searchBtn.disabled = true;
+
+            // 模擬搜尋延遲(讓使用者看到載入效果)
+            setTimeout(() => {
+                performSearch(keyword);
+                loading.classList.remove('active');
+                searchBtn.disabled = false;
+            }, 500);
+        }
+
+        // 執行搜尋
+        function performSearch(keyword) {
+            const lowerKeyword = keyword.toLowerCase();
+            
+            // 搜尋許可證資料(中文品名或英文品名包含關鍵字)
+            const results = licenseData.filter(drug => {
+                const chName = (drug['中文品名'] || '').toLowerCase();
+                const enName = (drug['英文品名'] || '').toLowerCase();
+                return chName.includes(lowerKeyword) || enName.includes(lowerKeyword);
+            });
+
+            // 限制顯示前20筆結果
+            const limitedResults = results.slice(0, 20);
+
+            if (limitedResults.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="no-results">
+                        <div class="no-results-icon">🔍</div>
+                        <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">找不到符合的藥品</h3>
+                        <p style="color: var(--text-secondary);">請嘗試其他關鍵字或檢查拼寫</p>
+                    </div>
+                `;
+            } else {
+                resultsContainer.innerHTML = limitedResults.map(drug => createDrugCard(drug)).join('');
+            }
+
+            resultsSection.classList.add('active');
+        }
+
+        // 建立藥品卡片
+        function createDrugCard(drug) {
+            const licenseNumber = drug['許可證字號'] || '無資料';
+            const chName = drug['中文品名'] || '無資料';
+            const enName = drug['英文品名'] || '無資料';
+            const indication = drug['適應症'] || '無資料';
+            const ingredients = drug['成分'] || '無資料';
+            const usage = drug['用法用量'] || '無資料';
+
+            // 查找仿單資料
+            const packageInfo = packageData.find(p => p['許可證字號'] === licenseNumber);
+            const packageLink = packageInfo ? packageInfo['仿單連結'] : null;
+
+            // 查找外觀圖片
+            const imageInfo = imageData.find(img => img['許可證字號'] === licenseNumber);
+            const imageLink = imageInfo ? imageInfo['圖檔名稱'] : null;
+
+            // 查找健保給付規定
+            const nhiInfo = nhiData.find(n => n['藥品許可證'] === licenseNumber);
+            const nhiChapter = nhiInfo ? nhiInfo['給付規定'] : null;
+            const nhiLink = nhiInfo ? `https://info.nhi.gov.tw/BNHI_FeeCharg/FeeChargInfo.aspx` : null;
+
+            // 處理成分顯示
+            const ingredientsList = ingredients.split(';').filter(i => i.trim());
+
+            return `
+                <div class="drug-card">
+                    <div class="drug-header">
+                        <div class="drug-name-ch">${chName}</div>
+                        <div class="drug-name-en">${enName}</div>
+                        <span class="license-number">📋 ${licenseNumber}</span>
+                    </div>
+
+                    <div class="info-section">
+                        <div class="info-label">💊 適應症</div>
+                        <div class="info-content">${indication}</div>
+                    </div>
+
+                    <div class="info-section">
+                        <div class="info-label">🧪 主要成分</div>
+                        <div class="info-grid">
+                            ${ingredientsList.map(ing => `
+                                <div class="ingredient-item">${ing.trim()}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <div class="info-label">📝 用法用量</div>
+                        <div class="info-content">${usage}</div>
+                    </div>
+
+                    ${nhiChapter ? `
+                        <div class="nhi-section">
+                            <div class="info-label">💰 健保給付規定</div>
+                            <div class="info-content">${nhiChapter}</div>
+                        </div>
+                    ` : ''}
+
+                    <div class="links-section">
+                        ${packageLink ? `
+                            <a href="${packageLink}" target="_blank" class="link-btn">
+                                📄 查看藥品仿單
+                            </a>
+                        ` : ''}
+                        ${imageLink ? `
+                            <a href="${imageLink}" target="_blank" class="link-btn secondary">
+                                🖼️ 查看外觀圖片
+                            </a>
+                        ` : ''}
+                        ${nhiLink && nhiChapter ? `
+                            <a href="${nhiLink}" target="_blank" class="link-btn secondary">
+                                📊 健保給付查詢
+                            </a>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 事件監聽
+        searchBtn.addEventListener('click', searchDrugs);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchDrugs();
+            }
+        });
+
+        // 頁面載入時初始化資料
+        loadAllData();
+    </script>
+</body>
+</html>
