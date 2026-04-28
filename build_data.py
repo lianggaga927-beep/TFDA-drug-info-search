@@ -5,31 +5,22 @@
 從食藥署與健保署下載四個 API 資料，合併輸出為精簡 JSON。
 
 格式（經實測）：
-  - FDA 37/39/42：ZIP 檔，內含一個 JSON 檔
-  - NHI：UTF-8 BOM 開頭的 CSV 檔（不是 JSON）
+  - FDA 37/39/42：ZIP 檔，內含 JSON
+  - NHI：UTF-8 BOM 開頭的 CSV
 
-NHI 對應策略：
-  健保「藥品代號」結構通常為「[字母前綴][許可證數字][包裝後綴]」，
-  例如「BC42374100」對應「衛署藥製字第042374號」。
-  本腳本對 NHI 端生成多種可能的子字串鍵，
-  FDA 端用許可證數字（保留與去除前導零兩種）查找匹配。
+NHI 對應策略（精確版）：
+  1. 先以「許可證數字」對「藥品代號去字母前綴後的中段」做匹配
+  2. 排除原料藥（製劑原料）不參與健保匹配，避免字軌撞號
+  3. 數字匹配後，用「英文名核心字」做二次驗證
 
 依賴：pip install requests
 """
 
-import json
-import sys
-import os
-import re
-import time
-import io
-import csv
-import zipfile
+import json, sys, os, re, time, io, csv, zipfile
 from datetime import datetime
 
 try:
-    import requests
-    import urllib3
+    import requests, urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 except ImportError:
     print("✗  缺少 requests 套件", file=sys.stderr)
@@ -42,10 +33,20 @@ API_42  = "https://data.fda.gov.tw/data/opendata/export/42/json"
 API_NHI = "https://info.nhi.gov.tw/api/iode0000s01/Dataset?rId=A21030000I-E41001-001"
 OUTPUT_FILE = "drugs_data.json"
 TIMEOUT_SEC = 180
+
+# 英文劑型/常用詞（比對核心字時排除）
+FILLER_WORDS = {
+    'TABLET','TABLETS','CAPSULE','CAPSULES','INJECTION','SOLUTION','SUSPENSION',
+    'CREAM','OINTMENT','SYRUP','POWDER','GEL','LOTION','SPRAY','DROPS',
+    'INHALER','SUPPOSITORY','PATCH','FILM','COATED','ENTERIC','EXTENDED',
+    'RELEASE','SUSTAINED','MODIFIED','ORAL','PROLONGED','CONTROLLED',
+    'STANDARD','GENERIC','BRAND','NEW','NEO','PLUS','FORTE','MITE','ULTRA',
+    'TAB','TABS','CAP','CAPS','INJ','SOLN','SUSP','MICROGRAM','MILLIGRAM',
+    'GRAM','UNIT','UNITS','HUNDRED','THOUSAND',
+}
 # ────────────────────────────────────────────────────────────────
 
 
-# ── 下載與解碼 ──────────────────────────────────────────────────
 def download(url, label, verify=True):
     print(f"  ⬇  下載中：{label}")
     if not verify:
@@ -104,7 +105,65 @@ def fetch_nhi_csv(url, label):
         return []
 
 
-# ── 欄位輔助 ────────────────────────────────────────────────────
+# ── 許可證匹配核心 ──────────────────────────────────────────────
+def fda_lic_to_keys(license_str):
+    m = re.search(r'第(\d+)號', license_str)
+    if not m:
+        return set()
+    n = m.group(1)
+    return {n, n.lstrip('0')} - {''}
+
+
+def nhi_code_to_keys(code):
+    if not code:
+        return set()
+    digits = re.sub(r'^[A-Za-z]+', '', code.strip())
+    if not digits.isdigit():
+        return set()
+    keys = set()
+    for n in (5, 6, 7):
+        if len(digits) >= n + 2:
+            sub = digits[:n]
+            keys.add(sub)
+            keys.add(sub.lstrip('0'))
+    return keys - {''}
+
+
+# ── 過濾與驗證邏輯 ──────────────────────────────────────────────
+def is_raw_material(drug):
+    """判斷是否為原料藥（不應參與健保匹配）"""
+    usage   = (drug.get('用法用量') or '').strip()
+    licType = (drug.get('許可證種類') or '').strip()
+    if '原料' in licType:
+        return True
+    if '製劑原料' in usage:
+        return True
+    return False
+
+
+def core_words(name):
+    """提取英文名的核心詞，排除劑型/規格等干擾字"""
+    if not name:
+        return set()
+    words = set(re.findall(r'[A-Z]{4,}', name.upper()))
+    return words - FILLER_WORDS
+
+
+def names_match(fda_en, nhi_en):
+    """
+    核心字交集驗證：兩個英文名是否「相關」。
+    - 雙方都缺資料 → 視為通過（不阻擋）
+    - 雙方核心字交集 >= 1 → 通過
+    - 否則 → 視為不匹配
+    """
+    f = core_words(fda_en)
+    n = core_words(nhi_en)
+    if not f or not n:
+        return True  # 資料不足無法判斷，不擋
+    return bool(f & n)
+
+
+# ── 顯示輔助 ────────────────────────────────────────────────────
 def detect_field(rows, *patterns):
     if not rows:
         return None
@@ -127,42 +186,6 @@ def show_keys(label, rows):
             print(f"       {' | '.join(keys[i:i+4])}")
 
 
-def show_samples(label, rows, n=3):
-    print(f"\n  🔬 {label} 前 {n} 筆樣本：")
-    for i, row in enumerate(rows[:n]):
-        print(f"     [{i+1}]")
-        for k, v in list(row.items())[:8]:
-            v_str = str(v)
-            v_disp = v_str[:50] + "…" if len(v_str) > 50 else v_str
-            print(f"         {k}: {v_disp}")
-
-
-# ── 許可證匹配核心 ──────────────────────────────────────────────
-def fda_lic_to_keys(license_str):
-    """衛署藥製字第042374號 → {'042374', '42374'}"""
-    m = re.search(r'第(\d+)號', license_str)
-    if not m:
-        return set()
-    n = m.group(1)
-    return {n, n.lstrip('0')} - {''}
-
-
-def nhi_code_to_keys(code):
-    """BC42374100 → {'42374', '423741'} 等多種可能截取"""
-    if not code:
-        return set()
-    digits = re.sub(r'^[A-Za-z]+', '', code.strip())
-    if not digits.isdigit():
-        return set()
-    keys = set()
-    for n in (5, 6, 7):
-        if len(digits) >= n + 2:
-            sub = digits[:n]
-            keys.add(sub)
-            keys.add(sub.lstrip('0'))
-    return keys - {''}
-
-
 # ── 主流程 ──────────────────────────────────────────────────────
 def main():
     print("=" * 60)
@@ -179,41 +202,34 @@ def main():
     if not raw37:
         sys.exit("\n⚠  API 37 無資料")
 
-    # ── 勘查 ────────────────────────────────────────────────────
-    print("\n  === 完整欄位清單 ===")
-    show_keys("API 37", raw37)
-    show_keys("API 39", raw39)
-    show_keys("API 42", raw42)
-    show_keys("NHI",    raw_nhi)
-    if raw_nhi:
-        show_samples("NHI", raw_nhi, n=3)
-
     # ── 欄位映射 ────────────────────────────────────────────────
     print("\n  === 自動欄位映射 ===")
     K37_indication = detect_field(raw37, "適應症")
     K37_ingredient = detect_field(raw37, "主成分", "成分")
     K37_usage      = detect_field(raw37, "用法用量", "用法")
-    print(f"  API 37: 適應症={K37_indication}  成分={K37_ingredient}  用法={K37_usage}")
+    K37_lictype    = detect_field(raw37, "許可證種類")
+    print(f"  API 37: 適應症={K37_indication}  成分={K37_ingredient}  用法={K37_usage}  類別={K37_lictype}")
 
     K39_lic     = detect_field(raw39, "許可證字號")
     K39_package = detect_field(raw39, "仿單圖檔連結", "仿單檔案連結", "仿單連結")
-    K39_outer   = detect_field(raw39, "外盒圖檔連結", "外盒連結")
+    K39_outer   = detect_field(raw39, "外盒圖檔連結")
     print(f"  API 39: lic={K39_lic}  仿單={K39_package}  外盒={K39_outer}")
 
     K42_lic   = detect_field(raw42, "許可證字號")
-    K42_image = detect_field(raw42, "外觀圖檔連結", "圖檔連結", "圖檔名稱")
+    K42_image = detect_field(raw42, "外觀圖檔連結", "圖檔連結")
     print(f"  API 42: lic={K42_lic}  圖檔={K42_image}")
 
-    KN_drugcode = detect_field(raw_nhi, "藥品代號", "藥品代碼")
-    KN_chapter  = detect_field(raw_nhi, "給付規定章節", "給付規定")
-    KN_link     = detect_field(raw_nhi, "給付規定章節連結", "給付規定連結")
-    KN_drugurl  = detect_field(raw_nhi, "藥品代碼超連結", "藥品代號超連結")
-    print(f"  NHI: 代號={KN_drugcode}  章節={KN_chapter}  章節連結={KN_link}  代碼超連結={KN_drugurl}")
+    KN_drugcode = detect_field(raw_nhi, "藥品代號")
+    KN_chapter  = detect_field(raw_nhi, "給付規定章節")
+    KN_link     = detect_field(raw_nhi, "給付規定章節連結")
+    KN_drugurl  = detect_field(raw_nhi, "藥品代碼超連結")
+    KN_chname   = detect_field(raw_nhi, "藥品中文名稱", "中文品名")
+    KN_enname   = detect_field(raw_nhi, "藥品英文名稱", "英文品名")
+    print(f"  NHI: 代號={KN_drugcode}  章節={KN_chapter}  英文名={KN_enname}")
 
     # ── Step 2：建立索引 ────────────────────────────────────────
     print("\n【Step 2】建立索引字典...")
 
-    # 仿單（含外盒）
     pkg_dict = {}
     if K39_lic:
         for row in raw39:
@@ -226,7 +242,6 @@ def main():
                     if link:
                         pkg_dict.setdefault(lic, []).append(link)
 
-    # 外觀
     img_dict = {}
     if K42_lic and K42_image:
         for row in raw42:
@@ -235,9 +250,10 @@ def main():
             if lic and img:
                 img_dict.setdefault(lic, []).append(img)
 
-    # NHI：以「許可證子字串」為 key 建索引
-    nhi_index = {}     # licnum_key -> nhi_record
-    nhi_with_chapter_count = 0
+    # NHI：每個 key 可能對到多筆 NHI 候選（同一許可證號可能有多個字軌的健保品項）
+    # 改成 list 儲存所有候選，比對時再用英文名驗證選對的
+    nhi_index = {}  # key -> [候選清單]
+    nhi_with_chapter = 0
     if KN_drugcode:
         for row in raw_nhi:
             code = (row.get(KN_drugcode) or "").strip()
@@ -247,42 +263,71 @@ def main():
             chapter = (row.get(KN_chapter) or "").strip() if KN_chapter else ""
             link    = (row.get(KN_link)    or "").strip() if KN_link    else ""
             drugurl = (row.get(KN_drugurl) or "").strip() if KN_drugurl else ""
+            enname  = (row.get(KN_enname)  or "").strip() if KN_enname  else ""
+            chname  = (row.get(KN_chname)  or "").strip() if KN_chname  else ""
+
             payload = {
                 "nhiChapter":  chapter,
                 "nhiLink":     link,
                 "nhiDrugCode": code,
                 "nhiDrugUrl":  drugurl,
+                "nhiEnName":   enname,
+                "nhiChName":   chname,
             }
             if chapter:
-                nhi_with_chapter_count += 1
+                nhi_with_chapter += 1
             for k in keys:
-                # 同 key 多筆時，優先保留有 chapter 的
-                if k not in nhi_index or (chapter and not nhi_index[k]["nhiChapter"]):
-                    nhi_index[k] = payload
+                nhi_index.setdefault(k, []).append(payload)
 
     print(f"  仿單索引：{len(pkg_dict):,}")
     print(f"  圖檔索引：{len(img_dict):,}")
-    print(f"  健保索引鍵值：{len(nhi_index):,}（NHI 含給付規定原始筆數 {nhi_with_chapter_count:,}）")
+    print(f"  健保索引鍵值：{len(nhi_index):,}（NHI 含給付規定 {nhi_with_chapter:,} 筆）")
 
-    # ── Step 3：合併 ────────────────────────────────────────────
-    print("\n【Step 3】合併資料...")
+    # ── Step 3：合併（精確匹配）─────────────────────────────────
+    print("\n【Step 3】合併資料（含原料藥過濾與英文名驗證）...")
     output = []
-    matched = 0
+    raw_count    = 0       # 原料藥
+    matched_nhi  = 0       # 健保品項
+    rejected_nm  = 0       # 被英文名驗證擋下
     for drug in raw37:
         lic = (drug.get("許可證字號") or "").strip()
         if not lic:
             continue
-        # 嘗試所有可能 key 找 NHI
+
+        is_raw = is_raw_material(drug)
+        if is_raw:
+            raw_count += 1
+
         nhi = {}
-        for k in fda_lic_to_keys(lic):
-            if k in nhi_index:
-                nhi = nhi_index[k]
-                break
+        # 只有非原料藥才查健保
+        if not is_raw:
+            fda_en = drug.get("英文品名") or ""
+            for k in fda_lic_to_keys(lic):
+                cands = nhi_index.get(k)
+                if not cands:
+                    continue
+                # 從候選中找英文名匹配最好的有給付規定的
+                best = None
+                for c in cands:
+                    if not c.get("nhiChapter"):
+                        continue
+                    if names_match(fda_en, c.get("nhiEnName", "")):
+                        best = c
+                        break
+                if best:
+                    nhi = best
+                    break
+                # 英文名都沒過 → 記錄被擋筆數（但有候選）
+                if any(c.get("nhiChapter") for c in cands):
+                    rejected_nm += 1
+                    break
+
         if nhi.get("nhiChapter"):
-            matched += 1
+            matched_nhi += 1
 
         output.append({
             "licenseNumber": lic,
+            "licenseType":   (drug.get(K37_lictype) or "").strip() if K37_lictype else "",
             "chName":        (drug.get("中文品名") or "").strip(),
             "enName":        (drug.get("英文品名") or "").strip(),
             "indication":    (drug.get(K37_indication) or "").strip() if K37_indication else "",
@@ -294,8 +339,14 @@ def main():
             "nhiLink":       nhi.get("nhiLink", ""),
             "nhiDrugCode":   nhi.get("nhiDrugCode", ""),
             "nhiDrugUrl":    nhi.get("nhiDrugUrl", ""),
+            "isRawMaterial": is_raw,
+            "isNhi":         bool(nhi.get("nhiChapter")),
         })
-    print(f"  合併完成：{len(output):,} 筆，健保有規定匹配：{matched:,} 筆")
+
+    print(f"  總筆數：{len(output):,}")
+    print(f"  原料藥：{raw_count:,}（已排除健保匹配）")
+    print(f"  健保品項：{matched_nhi:,}")
+    print(f"  英文名驗證排除：{rejected_nm:,}（數字撞號但藥名不符）")
 
     # ── Step 4：輸出 ────────────────────────────────────────────
     print(f"\n【Step 4】寫入 {OUTPUT_FILE}...")
@@ -304,6 +355,8 @@ def main():
             "_meta": {
                 "generatedAt":  datetime.now().isoformat(),
                 "totalRecords": len(output),
+                "nhiRecords":   matched_nhi,
+                "rawMaterials": raw_count,
             },
             "data": output,
         }, f, ensure_ascii=False, separators=(",", ":"))
@@ -316,14 +369,21 @@ def main():
     print(f"  有用法　　：{sum(1 for d in output if d['usage']):,}")
     print(f"  有仿單連結：{sum(1 for d in output if d['packageLinks']):,}")
     print(f"  有外觀圖檔：{sum(1 for d in output if d['imageLinks']):,}")
-    print(f"  有健保給付：{sum(1 for d in output if d['nhiChapter']):,}")
+    print(f"  原料藥　　：{sum(1 for d in output if d['isRawMaterial']):,}")
+    print(f"  健保品項　：{sum(1 for d in output if d['isNhi']):,}")
 
-    samples = [d for d in output if d['nhiChapter']][:3]
-    if samples:
-        print("\n  🔬 健保匹配範例：")
-        for d in samples:
-            print(f"     {d['licenseNumber']} ↔ NHI代號 {d['nhiDrugCode']}")
-            print(f"        規定：{d['nhiChapter'][:60]}…")
+    # 驗證：列出名稱含 NORVASC / AMLODIPINE 的筆數
+    print("\n  🔬 驗證範例（搜尋 'NORVASC' 與 'AMLODIPINE'）：")
+    for kw in ['NORVASC', 'AMLODIPINE', 'ATORVASTATIN']:
+        matches = [d for d in output if kw in (d['enName'] or '').upper()]
+        nhi_in_match = [d for d in matches if d['isNhi']]
+        raw_in_match = [d for d in matches if d['isRawMaterial']]
+        print(f"     {kw}: 共 {len(matches)} 筆 | 健保 {len(nhi_in_match)} | 原料 {len(raw_in_match)}")
+        for d in matches[:3]:
+            tag = "💚NHI" if d['isNhi'] else ("⚠️原料" if d['isRawMaterial'] else "  一般")
+            print(f"       {tag} {d['licenseNumber']} | {d['chName'][:20]} | {d['enName'][:35]}")
+            if d['isNhi']:
+                print(f"             → NHI {d['nhiDrugCode']} | {d['nhiChapter'][:30]}")
 
     print("\n" + "=" * 60)
     print("  完成！drugs_data.json 已就緒。")

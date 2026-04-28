@@ -1,492 +1,275 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>藥品資訊查詢系統 - 食藥署資料整合</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>藥品資訊查詢系統 - 食藥署資料整合</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
 
-        :root {
-            --primary-blue: #2563eb;
-            --secondary-blue: #3b82f6;
-            --light-blue: #dbeafe;
-            --lighter-blue: #eff6ff;
-            --dark-blue: #1e40af;
-            --bg-cream: #fefce8;
-            --bg-white: #ffffff;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --border-color: #e2e8f0;
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
-            --shadow-lg: 0 10px 25px -3px rgba(37,99,235,0.1);
-            --amber-bg: #fffbeb;
-            --amber-border: #f59e0b;
-            --amber-text: #92400e;
-            --teal-bg: #f0fdfa;
-            --teal-border: #0d9488;
-            --teal-text: #134e4a;
-        }
+:root {
+    --primary-blue:#2563eb; --secondary-blue:#3b82f6;
+    --light-blue:#dbeafe;   --lighter-blue:#eff6ff;
+    --dark-blue:#1e40af;    --bg-cream:#fefce8;
+    --bg-white:#ffffff;
+    --text-primary:#1e293b; --text-secondary:#64748b;
+    --border-color:#e2e8f0;
+    --shadow-sm:0 1px 3px rgba(0,0,0,.05);
+    --shadow-md:0 4px 6px -1px rgba(0,0,0,.1);
+    --shadow-lg:0 10px 25px -3px rgba(37,99,235,.1);
+    --amber-bg:#fffbeb;     --amber-border:#f59e0b;
+    --amber-text:#92400e;
+    --green-bg:#dcfce7;     --green-border:#16a34a;
+    --green-text:#14532d;
+    --teal-bg:#f0fdfa;      --teal-border:#0d9488;
+    --teal-text:#134e4a;
+    --gray-bg:#f1f5f9;      --gray-border:#94a3b8;
+}
 
-        body {
-            font-family: 'Noto Sans TC', 'Inter', -apple-system, sans-serif;
-            background: linear-gradient(135deg, var(--lighter-blue) 0%, var(--bg-white) 50%, var(--bg-cream) 100%);
-            min-height: 100vh;
-            color: var(--text-primary);
-            line-height: 1.6;
-        }
+body {
+    font-family:'Noto Sans TC',-apple-system,sans-serif;
+    background:linear-gradient(135deg,var(--lighter-blue) 0%,var(--bg-white) 50%,var(--bg-cream) 100%);
+    min-height:100vh; color:var(--text-primary); line-height:1.6;
+}
 
-        /* ── Header ──────────────────────────────────────────────── */
-        header {
-            background: var(--bg-white);
-            border-bottom: 2px solid var(--primary-blue);
-            box-shadow: var(--shadow-md);
-            animation: slideDown 0.5s ease-out;
-        }
+/* Header */
+header {
+    background:var(--bg-white); border-bottom:2px solid var(--primary-blue);
+    box-shadow:var(--shadow-md);
+}
+.header-content {
+    max-width:1200px; margin:0 auto; padding:1.25rem 1.5rem;
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:.5rem;
+}
+h1 { font-size:1.75rem; font-weight:700; color:var(--primary-blue); letter-spacing:-.025em; }
+.header-subtitle { font-size:.875rem; color:var(--text-secondary); }
+.data-badge {
+    background:var(--lighter-blue); color:var(--primary-blue);
+    border:1px solid var(--light-blue); border-radius:20px;
+    padding:.25rem .875rem; font-size:.8rem; font-weight:600;
+}
 
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1.25rem 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
+.container { max-width:1200px; margin:0 auto; padding:2rem 1.5rem; }
 
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--primary-blue);
-            letter-spacing: -0.025em;
-        }
+/* Search */
+.search-section {
+    background:var(--bg-white); border-radius:16px;
+    padding:1.75rem 2rem; box-shadow:var(--shadow-lg);
+    margin-bottom:1.5rem; border:1px solid var(--border-color);
+}
+.search-box { display:flex; gap:.75rem; margin-bottom:.875rem; }
+#searchInput {
+    flex:1; padding:.875rem 1.25rem; font-size:1rem;
+    border:2px solid var(--border-color); border-radius:12px;
+    font-family:inherit; transition:all .3s ease;
+}
+#searchInput:focus {
+    outline:none; border-color:var(--primary-blue);
+    box-shadow:0 0 0 3px var(--light-blue);
+}
+#searchBtn {
+    padding:.875rem 2rem; background:var(--primary-blue); color:white;
+    border:none; border-radius:12px; font-size:1rem; font-weight:600;
+    cursor:pointer; transition:all .3s ease; font-family:inherit;
+    white-space:nowrap;
+}
+#searchBtn:hover:not(:disabled) {
+    background:var(--dark-blue); transform:translateY(-1px); box-shadow:var(--shadow-md);
+}
+#searchBtn:disabled { background:var(--text-secondary); cursor:not-allowed; }
 
-        .header-subtitle {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
+/* Filter Toggle */
+.filter-row {
+    display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;
+    margin:.5rem 0 .25rem;
+}
+.filter-label {
+    font-size:.825rem; color:var(--text-secondary); margin-right:.25rem;
+}
+.filter-btn {
+    padding:.4rem .875rem; border:1.5px solid var(--border-color);
+    background:white; border-radius:20px; font-size:.825rem;
+    cursor:pointer; font-family:inherit; transition:all .2s ease;
+    color:var(--text-secondary);
+}
+.filter-btn:hover { border-color:var(--primary-blue); color:var(--primary-blue); }
+.filter-btn.active {
+    background:var(--primary-blue); color:white; border-color:var(--primary-blue);
+}
+.search-hint { font-size:.825rem; color:var(--text-secondary); margin-top:.5rem; }
 
-        .data-badge {
-            background: var(--lighter-blue);
-            color: var(--primary-blue);
-            border: 1px solid var(--light-blue);
-            border-radius: 20px;
-            padding: 0.25rem 0.875rem;
-            font-size: 0.8rem;
-            font-weight: 600;
-            white-space: nowrap;
-        }
+/* Init Banner */
+.init-banner {
+    background:var(--lighter-blue); border:1px solid var(--light-blue);
+    border-radius:10px; padding:.875rem 1.125rem; margin-top:.875rem;
+    display:flex; align-items:center; gap:.75rem;
+    font-size:.9rem; color:var(--primary-blue);
+}
+.mini-spinner {
+    border:2px solid var(--light-blue); border-top:2px solid var(--primary-blue);
+    border-radius:50%; width:16px; height:16px;
+    animation:spin .8s linear infinite;
+}
 
-        /* ── Container ───────────────────────────────────────────── */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
-        }
+/* Loading */
+.loading { display:none; text-align:center; padding:2.5rem; color:var(--primary-blue); }
+.loading.active { display:block; }
+.spinner {
+    border:3px solid var(--light-blue); border-top:3px solid var(--primary-blue);
+    border-radius:50%; width:40px; height:40px;
+    animation:spin .8s linear infinite; margin:0 auto .875rem;
+}
 
-        /* ── Search ──────────────────────────────────────────────── */
-        .search-section {
-            background: var(--bg-white);
-            border-radius: 16px;
-            padding: 1.75rem 2rem;
-            box-shadow: var(--shadow-lg);
-            margin-bottom: 1.5rem;
-            border: 1px solid var(--border-color);
-            animation: fadeIn 0.6s ease-out 0.2s both;
-        }
+/* Results */
+.results-section { display:none; }
+.results-section.active { display:block; animation:fadeIn .4s ease-out; }
+.results-meta { font-size:.875rem; color:var(--text-secondary); margin-bottom:1rem; }
+.no-results {
+    background:var(--bg-white); border-radius:12px; padding:3rem;
+    text-align:center; box-shadow:var(--shadow-md); border:1px solid var(--border-color);
+}
 
-        .search-box {
-            display: flex;
-            gap: 0.75rem;
-            margin-bottom: 0.75rem;
-        }
+/* Drug Card */
+.drug-card {
+    background:var(--bg-white); border-radius:16px;
+    padding:1.75rem 2rem; margin-bottom:1.25rem;
+    box-shadow:var(--shadow-lg); border:1px solid var(--border-color);
+    transition:transform .2s ease, box-shadow .2s ease;
+}
+.drug-card:hover { transform:translateY(-2px); box-shadow:0 14px 30px -5px rgba(37,99,235,.15); }
+.drug-card.is-nhi { border-left:4px solid var(--green-border); }
+.drug-card.is-raw { opacity:.85; border-left:4px solid var(--gray-border); }
 
-        #searchInput {
-            flex: 1;
-            padding: 0.875rem 1.25rem;
-            font-size: 1rem;
-            border: 2px solid var(--border-color);
-            border-radius: 12px;
-            font-family: 'Noto Sans TC', sans-serif;
-            transition: all 0.3s ease;
-            background: var(--bg-white);
-        }
+.drug-header {
+    border-bottom:2px solid var(--lighter-blue);
+    padding-bottom:1rem; margin-bottom:1.25rem;
+}
+.drug-name-row { display:flex; align-items:flex-start; gap:.75rem; flex-wrap:wrap; }
+.drug-name-ch { font-size:1.4rem; font-weight:700; color:var(--primary-blue); }
+.drug-name-en { font-size:1rem; color:var(--text-secondary); font-style:italic; margin:.2rem 0 .5rem; }
 
-        #searchInput:focus {
-            outline: none;
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px var(--light-blue);
-        }
+/* Badges */
+.badge {
+    display:inline-flex; align-items:center; gap:.3rem;
+    padding:.2rem .65rem; border-radius:14px; font-size:.75rem;
+    font-weight:600; white-space:nowrap;
+}
+.badge-nhi { background:var(--green-bg); color:var(--green-text); border:1px solid var(--green-border); }
+.badge-raw { background:var(--gray-bg); color:var(--text-secondary); border:1px solid var(--gray-border); }
+.badge-license {
+    background:var(--lighter-blue); color:var(--primary-blue);
+    padding:.3rem .875rem; border-radius:8px; font-size:.825rem;
+    font-weight:600; display:inline-block;
+}
 
-        #searchBtn {
-            padding: 0.875rem 2rem;
-            background: var(--primary-blue);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Noto Sans TC', sans-serif;
-            white-space: nowrap;
-        }
+/* Info */
+.info-section { margin-bottom:1.25rem; }
+.info-label {
+    font-weight:600; color:var(--primary-blue); margin-bottom:.5rem;
+    font-size:.9rem; display:flex; align-items:center; gap:.5rem;
+}
+.info-label::before {
+    content:''; display:inline-block; width:4px; height:15px;
+    background:var(--primary-blue); border-radius:2px; flex-shrink:0;
+}
+.info-content { color:var(--text-primary); font-size:.9rem; line-height:1.75; padding-left:.875rem; }
 
-        #searchBtn:hover:not(:disabled) {
-            background: var(--dark-blue);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-        }
+.ingredients-wrap { display:flex; flex-wrap:wrap; gap:.5rem; padding-left:.875rem; }
+.ingredient-pill {
+    background:var(--lighter-blue); border:1px solid var(--light-blue);
+    color:var(--dark-blue); padding:.3rem .75rem;
+    border-radius:20px; font-size:.825rem;
+}
 
-        #searchBtn:disabled {
-            background: var(--text-secondary);
-            cursor: not-allowed;
-        }
+/* NHI Section */
+.nhi-section {
+    background:var(--amber-bg); border:1.5px solid var(--amber-border);
+    border-radius:12px; padding:1.125rem 1.25rem; margin-bottom:1.25rem;
+}
+.nhi-section .info-label { color:var(--amber-text); }
+.nhi-section .info-label::before { background:var(--amber-border); }
+.nhi-section .info-content { color:var(--amber-text); }
+.nhi-meta { font-size:.78rem; color:var(--amber-text); opacity:.8; margin-top:.4rem; padding-left:.875rem; }
 
-        .search-hint {
-            font-size: 0.825rem;
-            color: var(--text-secondary);
-        }
+/* Image Section */
+.image-section {
+    background:var(--teal-bg); border:1.5px solid var(--teal-border);
+    border-radius:12px; padding:1.125rem 1.25rem; margin-bottom:1.25rem;
+}
+.image-section .info-label { color:var(--teal-text); }
+.image-section .info-label::before { background:var(--teal-border); }
+.image-thumbs { display:flex; flex-wrap:wrap; gap:.5rem; padding-left:.875rem; margin-top:.5rem; }
+.image-thumb-link {
+    background:white; border:1px solid var(--teal-border); color:var(--teal-text);
+    padding:.3rem .75rem; border-radius:8px; font-size:.825rem;
+    text-decoration:none; transition:background .2s;
+}
+.image-thumb-link:hover { background:var(--teal-border); color:white; }
 
-        /* ── Init / Loading banner ───────────────────────────────── */
-        .init-banner {
-            background: var(--lighter-blue);
-            border: 1px solid var(--light-blue);
-            border-radius: 10px;
-            padding: 0.875rem 1.125rem;
-            margin-top: 0.875rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-size: 0.9rem;
-            color: var(--primary-blue);
-        }
+/* Links */
+.links-row {
+    display:flex; flex-wrap:wrap; gap:.625rem;
+    padding-top:1.125rem; border-top:1px solid var(--border-color);
+}
+.link-btn {
+    display:inline-flex; align-items:center; gap:.4rem;
+    padding:.55rem 1.125rem; border-radius:8px; font-size:.875rem;
+    font-weight:500; text-decoration:none; transition:all .2s ease;
+}
+.link-btn-primary { background:var(--primary-blue); color:white; }
+.link-btn-primary:hover { background:var(--dark-blue); transform:translateY(-1px); }
+.link-btn-outline {
+    background:var(--bg-white); color:var(--primary-blue);
+    border:2px solid var(--primary-blue);
+}
+.link-btn-outline:hover { background:var(--lighter-blue); }
+.link-btn-amber {
+    background:var(--amber-bg); color:var(--amber-text); border:2px solid var(--amber-border);
+}
+.link-btn-amber:hover { background:var(--amber-border); color:white; }
+.link-btn-gray {
+    background:var(--gray-bg); color:var(--text-secondary); border:2px solid var(--gray-border);
+}
+.link-btn-gray:hover { background:var(--gray-border); color:white; }
 
-        .mini-spinner {
-            border: 2px solid var(--light-blue);
-            border-top: 2px solid var(--primary-blue);
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            flex-shrink: 0;
-            animation: spin 0.8s linear infinite;
-        }
+.link-helper-tip {
+    font-size:.78rem; color:var(--text-secondary);
+    width:100%; padding-top:.4rem;
+}
 
-        /* ── Loading ─────────────────────────────────────────────── */
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 2.5rem;
-            color: var(--primary-blue);
-        }
+.error-msg {
+    background:#fee2e2; border:1.5px solid #ef4444; color:#991b1b;
+    padding:.875rem 1.125rem; border-radius:10px; margin-top:.75rem; display:none;
+}
+.error-msg.active { display:block; animation:fadeIn .3s ease-out; }
 
-        .loading.active { display: block; }
+footer {
+    text-align:center; padding:2rem 1rem; color:var(--text-secondary);
+    font-size:.8rem; margin-top:2rem;
+}
+footer a { color:var(--primary-blue); text-decoration:none; }
 
-        .spinner {
-            border: 3px solid var(--light-blue);
-            border-top: 3px solid var(--primary-blue);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 0.875rem;
-        }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+@keyframes spin   { to{transform:rotate(360deg)} }
 
-        /* ── Results ─────────────────────────────────────────────── */
-        .results-section { display: none; }
-        .results-section.active {
-            display: block;
-            animation: fadeIn 0.4s ease-out;
-        }
-
-        .results-meta {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-            padding-left: 0.25rem;
-        }
-
-        .no-results {
-            background: var(--bg-white);
-            border-radius: 12px;
-            padding: 3rem;
-            text-align: center;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border-color);
-        }
-
-        /* ── Drug Card ───────────────────────────────────────────── */
-        .drug-card {
-            background: var(--bg-white);
-            border-radius: 16px;
-            padding: 1.75rem 2rem;
-            margin-bottom: 1.25rem;
-            box-shadow: var(--shadow-lg);
-            border: 1px solid var(--border-color);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .drug-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 30px -5px rgba(37,99,235,0.15);
-        }
-
-        .drug-header {
-            border-bottom: 2px solid var(--lighter-blue);
-            padding-bottom: 1rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .drug-name-ch {
-            font-size: 1.4rem;
-            font-weight: 700;
-            color: var(--primary-blue);
-        }
-
-        .drug-name-en {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            font-style: italic;
-            margin: 0.2rem 0 0.5rem;
-        }
-
-        .license-badge {
-            display: inline-block;
-            background: var(--lighter-blue);
-            color: var(--primary-blue);
-            padding: 0.3rem 0.875rem;
-            border-radius: 8px;
-            font-size: 0.825rem;
-            font-weight: 600;
-        }
-
-        /* ── Info Sections ───────────────────────────────────────── */
-        .info-section {
-            margin-bottom: 1.25rem;
-        }
-
-        .info-label {
-            font-weight: 600;
-            color: var(--primary-blue);
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .info-label::before {
-            content: '';
-            display: inline-block;
-            width: 4px;
-            height: 15px;
-            background: var(--primary-blue);
-            border-radius: 2px;
-            flex-shrink: 0;
-        }
-
-        .info-content {
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            line-height: 1.75;
-            padding-left: 0.875rem;
-        }
-
-        /* ── Ingredients ─────────────────────────────────────────── */
-        .ingredients-wrap {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            padding-left: 0.875rem;
-        }
-
-        .ingredient-pill {
-            background: var(--lighter-blue);
-            border: 1px solid var(--light-blue);
-            color: var(--dark-blue);
-            padding: 0.3rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.825rem;
-        }
-
-        /* ── NHI Section ─────────────────────────────────────────── */
-        .nhi-section {
-            background: var(--amber-bg);
-            border: 1.5px solid var(--amber-border);
-            border-radius: 12px;
-            padding: 1.125rem 1.25rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .nhi-section .info-label {
-            color: var(--amber-text);
-        }
-
-        .nhi-section .info-label::before {
-            background: var(--amber-border);
-        }
-
-        .nhi-section .info-content {
-            color: var(--amber-text);
-        }
-
-        /* ── Image Preview ───────────────────────────────────────── */
-        .image-section {
-            background: var(--teal-bg);
-            border: 1.5px solid var(--teal-border);
-            border-radius: 12px;
-            padding: 1.125rem 1.25rem;
-            margin-bottom: 1.25rem;
-        }
-
-        .image-section .info-label {
-            color: var(--teal-text);
-        }
-
-        .image-section .info-label::before {
-            background: var(--teal-border);
-        }
-
-        .image-thumbs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            padding-left: 0.875rem;
-            margin-top: 0.5rem;
-        }
-
-        .image-thumb-link {
-            display: inline-block;
-            background: white;
-            border: 1px solid var(--teal-border);
-            color: var(--teal-text);
-            padding: 0.3rem 0.75rem;
-            border-radius: 8px;
-            font-size: 0.825rem;
-            text-decoration: none;
-            transition: background 0.2s;
-        }
-
-        .image-thumb-link:hover {
-            background: var(--teal-border);
-            color: white;
-        }
-
-        /* ── Links Row ───────────────────────────────────────────── */
-        .links-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.625rem;
-            padding-top: 1.125rem;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .link-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.55rem 1.125rem;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-
-        .link-btn-primary {
-            background: var(--primary-blue);
-            color: white;
-        }
-
-        .link-btn-primary:hover {
-            background: var(--dark-blue);
-            transform: translateY(-1px);
-        }
-
-        .link-btn-outline {
-            background: var(--bg-white);
-            color: var(--primary-blue);
-            border: 2px solid var(--primary-blue);
-        }
-
-        .link-btn-outline:hover {
-            background: var(--lighter-blue);
-        }
-
-        .link-btn-amber {
-            background: var(--amber-bg);
-            color: var(--amber-text);
-            border: 2px solid var(--amber-border);
-        }
-
-        .link-btn-amber:hover {
-            background: var(--amber-border);
-            color: white;
-        }
-
-        /* ── Error ───────────────────────────────────────────────── */
-        .error-msg {
-            background: #fee2e2;
-            border: 1.5px solid #ef4444;
-            color: #991b1b;
-            padding: 0.875rem 1.125rem;
-            border-radius: 10px;
-            margin-top: 0.75rem;
-            display: none;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .error-msg.active { display: block; }
-
-        /* ── Footer ──────────────────────────────────────────────── */
-        footer {
-            text-align: center;
-            padding: 2rem 1rem;
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-            margin-top: 2rem;
-        }
-
-        footer a {
-            color: var(--primary-blue);
-            text-decoration: none;
-        }
-
-        /* ── Animations ──────────────────────────────────────────── */
-        @keyframes slideDown {
-            from { transform: translateY(-16px); opacity: 0; }
-            to   { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* ── Responsive ──────────────────────────────────────────── */
-        @media (max-width: 640px) {
-            h1 { font-size: 1.375rem; }
-            .search-box { flex-direction: column; }
-            #searchBtn { width: 100%; }
-            .drug-card { padding: 1.25rem 1.25rem; }
-        }
-    </style>
+@media (max-width:640px) {
+    h1 { font-size:1.375rem; }
+    .search-box { flex-direction:column; }
+    #searchBtn { width:100%; }
+    .drug-card { padding:1.25rem; }
+}
+</style>
 </head>
 <body>
 <header>
     <div class="header-content">
         <div>
             <h1>🏥 藥品資訊查詢系統</h1>
-            <p class="header-subtitle">整合食藥署與健保署開放資料</p>
+            <p class="header-subtitle">整合食藥署與健保署開放資料 · 適用醫院藥師臨床查詢</p>
         </div>
         <span class="data-badge" id="dataBadge">資料載入中...</span>
     </div>
@@ -497,14 +280,23 @@
     <div class="search-section">
         <div class="search-box">
             <input type="text" id="searchInput"
-                   placeholder="請輸入藥品中文品名或英文品名（例如：普拿疼、Amoxicillin）"
+                   placeholder="請輸入藥品中文品名或英文品名（例如：Norvasc、脈優、阿莫西林）"
                    autocomplete="off" disabled>
             <button id="searchBtn" disabled>🔍 搜尋</button>
         </div>
-        <p class="search-hint">💡 支援部分關鍵字查詢，搜尋結果顯示前 20 筆</p>
+
+        <div class="filter-row">
+            <span class="filter-label">📋 篩選範圍：</span>
+            <button class="filter-btn active" data-filter="nhi">健保品項</button>
+            <button class="filter-btn" data-filter="all">全部藥品</button>
+            <button class="filter-btn" data-filter="non-nhi">未納健保</button>
+            <button class="filter-btn" data-filter="raw">含原料藥</button>
+        </div>
+
+        <p class="search-hint">💡 預設僅顯示健保品項。可切換篩選條件。搜尋結果最多 30 筆。</p>
         <div class="init-banner" id="initBanner">
             <div class="mini-spinner"></div>
-            <span>正在載入藥品資料庫，請稍候…（首次載入約需 1-3 秒）</span>
+            <span>正在載入藥品資料庫，請稍候…</span>
         </div>
         <div class="error-msg" id="errorMsg"></div>
     </div>
@@ -523,193 +315,219 @@
 
 <footer>
     <p>資料來源：
-        <a href="https://data.fda.gov.tw/" target="_blank">衛生福利部食品藥物管理署</a> ·
-        <a href="https://info.nhi.gov.tw/" target="_blank">衛生福利部中央健康保險署</a>
+        <a href="https://data.fda.gov.tw/" target="_blank">衛福部食品藥物管理署</a> ·
+        <a href="https://info.nhi.gov.tw/" target="_blank">衛福部中央健康保險署</a>
     </p>
-    <p style="margin-top:0.4rem;">本系統僅供參考，實際用藥請遵循醫師或藥師指示</p>
+    <p style="margin-top:.4rem;">本系統僅供臨床參考，實際用藥請以仿單與醫師處方為準</p>
 </footer>
 
 <script>
-    // ═══════════════════════════════════════════════════════════════
-    //  設定：本地靜態資料路徑（由 build_data.py 產生後上傳至 GitHub）
-    // ═══════════════════════════════════════════════════════════════
-    const DATA_URL = './drugs_data.json';
+const DATA_URL = './drugs_data.json';
 
-    // ── DOM refs ──────────────────────────────────────────────────
-    const searchInput    = document.getElementById('searchInput');
-    const searchBtn      = document.getElementById('searchBtn');
-    const loading        = document.getElementById('loading');
-    const resultsSection = document.getElementById('resultsSection');
-    const resultsContainer = document.getElementById('resultsContainer');
-    const resultsMeta    = document.getElementById('resultsMeta');
-    const errorMsg       = document.getElementById('errorMsg');
-    const initBanner     = document.getElementById('initBanner');
-    const dataBadge      = document.getElementById('dataBadge');
+const searchInput      = document.getElementById('searchInput');
+const searchBtn        = document.getElementById('searchBtn');
+const loading          = document.getElementById('loading');
+const resultsSection   = document.getElementById('resultsSection');
+const resultsContainer = document.getElementById('resultsContainer');
+const resultsMeta      = document.getElementById('resultsMeta');
+const errorMsg         = document.getElementById('errorMsg');
+const initBanner       = document.getElementById('initBanner');
+const dataBadge        = document.getElementById('dataBadge');
+const filterBtns       = document.querySelectorAll('.filter-btn');
 
-    // ── State ─────────────────────────────────────────────────────
-    let drugDatabase = [];  // 全域快取，載入一次就可多次搜尋
+let drugDatabase = [];
+let currentFilter = 'nhi';      // 預設健保品項
+let lastResults = null;          // 快取上次搜尋結果以便切換篩選即時生效
 
-    // ── Helpers ───────────────────────────────────────────────────
-    function showError(msg) {
-        errorMsg.textContent = msg;
-        errorMsg.classList.add('active');
+const showError = msg => { errorMsg.textContent = msg; errorMsg.classList.add('active'); };
+const hideError = ()  => errorMsg.classList.remove('active');
+
+// ── Init ──────────────────────────────────────────────────────
+async function initDatabase() {
+    try {
+        const resp = await fetch(DATA_URL);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
+        drugDatabase = Array.isArray(json) ? json : (json.data || []);
+
+        const meta = json._meta || {};
+        const total = (meta.totalRecords || drugDatabase.length).toLocaleString();
+        const nhi   = (meta.nhiRecords || 0).toLocaleString();
+        const date  = meta.generatedAt
+            ? new Date(meta.generatedAt).toLocaleDateString('zh-TW')
+            : '未知';
+
+        searchInput.disabled = false;
+        searchBtn.disabled = false;
+        initBanner.style.display = 'none';
+        dataBadge.textContent = `共 ${total} 筆 · 健保 ${nhi} · 更新 ${date}`;
+        searchInput.focus();
+
+    } catch (err) {
+        console.error('資料庫載入失敗:', err);
+        initBanner.innerHTML = '⚠️ 資料庫載入失敗，請確認 <code>drugs_data.json</code> 已上傳。';
+        initBanner.style.background = '#fee2e2';
+        initBanner.style.color = '#991b1b';
+        dataBadge.textContent = '載入失敗';
     }
+}
 
-    function hideError() {
-        errorMsg.classList.remove('active');
-    }
-
-    function setLoading(on) {
-        loading.classList.toggle('active', on);
-        searchBtn.disabled = on;
-    }
-
-    // ── Init: 載入本地靜態 JSON ───────────────────────────────────
-    async function initDatabase() {
-        try {
-            const resp = await fetch(DATA_URL);
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const json = await resp.json();
-
-            // build_data.py 輸出格式為 { _meta: {...}, data: [...] }
-            // 也相容純陣列格式（舊版）
-            drugDatabase = Array.isArray(json) ? json : (json.data || []);
-
-            const meta = json._meta || {};
-            const count = drugDatabase.length.toLocaleString();
-            const date  = meta.generatedAt
-                ? new Date(meta.generatedAt).toLocaleDateString('zh-TW')
-                : '未知';
-
-            // 啟用搜尋介面
-            searchInput.disabled = false;
-            searchBtn.disabled = false;
-            initBanner.style.display = 'none';
-            dataBadge.textContent = `共 ${count} 筆 · 更新：${date}`;
-            searchInput.focus();
-
-        } catch (err) {
-            console.error('資料庫載入失敗:', err);
-            initBanner.innerHTML = '⚠️ 資料庫載入失敗，請確認 <code>drugs_data.json</code> 是否已上傳至 GitHub 儲存庫根目錄。';
-            initBanner.style.background = '#fee2e2';
-            initBanner.style.color = '#991b1b';
-            dataBadge.textContent = '載入失敗';
+// ── Filter buttons ────────────────────────────────────────────
+filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        // 若已有搜尋結果，立即重渲染
+        if (lastResults) {
+            renderResults();
         }
+    });
+});
+
+// ── Search ────────────────────────────────────────────────────
+function searchDrugs() {
+    hideError();
+    const keyword = searchInput.value.trim();
+    if (!keyword) { showError('請輸入藥品名稱'); return; }
+    if (drugDatabase.length === 0) { showError('資料庫尚未載入'); return; }
+
+    loading.classList.add('active');
+    resultsSection.classList.remove('active');
+    searchBtn.disabled = true;
+
+    setTimeout(() => {
+        const lower = keyword.toLowerCase();
+        lastResults = drugDatabase.filter(d =>
+            (d.chName || '').toLowerCase().includes(lower) ||
+            (d.enName || '').toLowerCase().includes(lower)
+        );
+        loading.classList.remove('active');
+        searchBtn.disabled = false;
+        renderResults();
+    }, 50);
+}
+
+// ── Apply filter ──────────────────────────────────────────────
+function applyFilter(arr) {
+    switch (currentFilter) {
+        case 'nhi':     return arr.filter(d => d.isNhi);
+        case 'non-nhi': return arr.filter(d => !d.isNhi && !d.isRawMaterial);
+        case 'raw':     return arr.filter(d => d.isRawMaterial);
+        case 'all':     return arr;
+        default:        return arr;
     }
+}
 
-    // ── Search ────────────────────────────────────────────────────
-    function searchDrugs() {
-        hideError();
-        const keyword = searchInput.value.trim();
+// ── Render ────────────────────────────────────────────────────
+function renderResults() {
+    if (!lastResults) return;
 
-        if (!keyword) {
-            showError('請輸入藥品名稱');
-            return;
-        }
+    const filtered = applyFilter(lastResults);
 
-        if (drugDatabase.length === 0) {
-            showError('資料庫尚未載入，請稍候再試');
-            return;
-        }
+    // 排序：健保品項在前，原料藥在後
+    filtered.sort((a, b) => {
+        if (a.isNhi !== b.isNhi) return b.isNhi - a.isNhi;
+        if (a.isRawMaterial !== b.isRawMaterial) return a.isRawMaterial - b.isRawMaterial;
+        return 0;
+    });
 
-        setLoading(true);
-        resultsSection.classList.remove('active');
+    const limited = filtered.slice(0, 30);
 
-        // 用 setTimeout 讓 spinner 有機會渲染
-        setTimeout(() => {
-            const lower = keyword.toLowerCase();
-            const matched = drugDatabase.filter(d =>
-                (d.chName || '').toLowerCase().includes(lower) ||
-                (d.enName || '').toLowerCase().includes(lower)
-            );
-            const results = matched.slice(0, 20);
-
-            renderResults(results, matched.length);
-            setLoading(false);
-        }, 50);
+    if (limited.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="no-results">
+                <div style="font-size:2.5rem;margin-bottom:.75rem">🔍</div>
+                <h3 style="margin-bottom:.5rem">符合條件的藥品為 0 筆</h3>
+                <p style="color:var(--text-secondary)">試試切換上方篩選條件，或調整關鍵字</p>
+            </div>`;
+        resultsMeta.textContent = '';
+    } else {
+        const filterLabel = {
+            'nhi':'健保品項', 'all':'全部藥品', 'non-nhi':'未納健保', 'raw':'原料藥'
+        }[currentFilter];
+        resultsMeta.innerHTML = `
+            篩選範圍：<strong>${filterLabel}</strong> · 
+            符合 ${filtered.length.toLocaleString()} 筆
+            ${filtered.length > 30 ? `（顯示前 30 筆，請使用更精確的關鍵字）` : ''}
+        `;
+        resultsContainer.innerHTML = limited.map(buildCard).join('');
     }
+    resultsSection.classList.add('active');
+}
 
-    // ── Render ────────────────────────────────────────────────────
-    function renderResults(results, totalMatched) {
-        if (results.length === 0) {
-            resultsContainer.innerHTML = `
-                <div class="no-results">
-                    <div style="font-size:2.5rem;margin-bottom:0.75rem">🔍</div>
-                    <h3 style="margin-bottom:0.5rem">找不到符合的藥品</h3>
-                    <p style="color:var(--text-secondary)">請嘗試其他關鍵字或確認拼寫是否正確</p>
-                </div>`;
-            resultsMeta.textContent = '';
-        } else {
-            resultsMeta.textContent = totalMatched > 20
-                ? `找到 ${totalMatched.toLocaleString()} 筆結果，顯示前 20 筆（請使用更精確的關鍵字縮小範圍）`
-                : `找到 ${totalMatched} 筆結果`;
-            resultsContainer.innerHTML = results.map(buildCard).join('');
-        }
-        resultsSection.classList.add('active');
-    }
+// ── Card Builder ──────────────────────────────────────────────
+function buildCard(drug) {
+    const cardClass = drug.isNhi ? 'is-nhi' : (drug.isRawMaterial ? 'is-raw' : '');
 
-    // ── Card Builder ──────────────────────────────────────────────
-    function buildCard(drug) {
-        // 成分 Pill
-        const pills = (drug.ingredients || '')
-            .split(/[;；]/)
-            .map(s => s.trim())
-            .filter(Boolean)
-            .map(s => `<span class="ingredient-pill">${s}</span>`)
-            .join('') || '<span style="color:var(--text-secondary)">無資料</span>';
+    // Badges
+    let badges = '';
+    if (drug.isNhi) badges += '<span class="badge badge-nhi">💊 健保品項</span>';
+    if (drug.isRawMaterial) badges += '<span class="badge badge-raw">⚗ 原料藥</span>';
 
-        // 仿單按鈕（可能有多個）
-        const pkgBtns = (drug.packageLinks || []).map((url, i) => `
-            <a href="${url}" target="_blank" rel="noopener" class="link-btn link-btn-primary">
-                📄 藥品仿單${drug.packageLinks.length > 1 ? ' ' + (i + 1) : ''}
-            </a>`).join('') || '';
+    // Ingredients
+    const pills = (drug.ingredients || '')
+        .split(/[;；]/).map(s => s.trim()).filter(Boolean)
+        .map(s => `<span class="ingredient-pill">${escapeHtml(s)}</span>`)
+        .join('') || '<span style="color:var(--text-secondary)">無資料</span>';
 
-        // 外觀圖連結（在圖檔區）
-        const imgLinks = (drug.imageLinks || []).map((url, i) => `
-            <a href="${url}" target="_blank" rel="noopener" class="image-thumb-link">
-                🖼 圖檔${drug.imageLinks.length > 1 ? ' ' + (i + 1) : ''}
-            </a>`).join('');
+    // 仿單按鈕（API 39 提供的連結）
+    const pkgBtns = (drug.packageLinks || []).map((url, i) => `
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="link-btn link-btn-primary">
+            📄 藥品仿單${drug.packageLinks.length > 1 ? ' '+(i+1) : ''}
+        </a>`).join('');
 
-        // 圖檔區塊（有才顯示）
-        const imageSection = imgLinks ? `
-            <div class="image-section">
-                <div class="info-label">🖼️ 藥品外觀圖檔</div>
-                <div class="image-thumbs">${imgLinks}</div>
-            </div>` : '';
+    // Google 仿單備援連結（仿單按鈕 404 時的備案）
+    const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(drug.licenseNumber + ' 仿單')}`;
+    const fdaSearchUrl    = `https://info.fda.gov.tw/MLMS/H0001.aspx?Type=Lic&LicId=${encodeURIComponent(drug.licenseNumber)}`;
 
-        // 健保給付區塊（有才顯示）
-        const nhiSection = drug.nhiChapter ? `
-            <div class="nhi-section">
-                <div class="info-label">💰 健保給付規定</div>
-                <div class="info-content">${drug.nhiChapter}</div>
-            </div>` : '';
+    // 外觀按鈕
+    const imgBtns = (drug.imageLinks || []).map((url, i) => `
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="link-btn link-btn-outline">
+            🖼️ 外觀圖${drug.imageLinks.length > 1 ? ' '+(i+1) : ''}
+        </a>`).join('');
 
-        // 健保連結按鈕
-        const nhiBtn = drug.nhiLink ? `
-            <a href="${drug.nhiLink}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
-                📊 健保給付連結
-            </a>` : '';
+    // 健保連結
+    const nhiBtn = (drug.nhiDrugUrl || drug.nhiLink) ? `
+        <a href="${escapeAttr(drug.nhiDrugUrl || drug.nhiLink)}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
+            📊 健保給付連結
+        </a>` : '';
 
-        // 圖檔按鈕（放在連結列）
-        const imgBtns = (drug.imageLinks || []).length === 0 ? '' :
-            (drug.imageLinks || []).map((url, i) => `
-                <a href="${url}" target="_blank" rel="noopener" class="link-btn link-btn-outline">
-                    🖼️ 外觀圖${drug.imageLinks.length > 1 ? ' ' + (i + 1) : ''}
-                </a>`).join('');
+    // 圖檔區塊
+    const imgLinks = (drug.imageLinks || []).map((url, i) => `
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="image-thumb-link">
+            🖼 圖檔${drug.imageLinks.length > 1 ? ' '+(i+1) : ''}
+        </a>`).join('');
+    const imageSection = imgLinks ? `
+        <div class="image-section">
+            <div class="info-label">🖼️ 藥品外觀圖檔</div>
+            <div class="image-thumbs">${imgLinks}</div>
+        </div>` : '';
 
-        const hasLinks = pkgBtns || imgBtns || nhiBtn;
+    // 健保區塊
+    const nhiSection = drug.nhiChapter ? `
+        <div class="nhi-section">
+            <div class="info-label">💰 健保給付規定</div>
+            <div class="info-content">${escapeHtml(drug.nhiChapter)}</div>
+            <div class="nhi-meta">健保藥品代號：${escapeHtml(drug.nhiDrugCode || '')}</div>
+        </div>` : '';
 
-        return `
-<div class="drug-card">
+    return `
+<div class="drug-card ${cardClass}">
     <div class="drug-header">
-        <div class="drug-name-ch">${drug.chName || '無中文品名'}</div>
-        <div class="drug-name-en">${drug.enName || '無英文品名'}</div>
-        <span class="license-badge">📋 ${drug.licenseNumber}</span>
+        <div class="drug-name-row">
+            <div style="flex:1;min-width:200px;">
+                <div class="drug-name-ch">${escapeHtml(drug.chName || '無中文品名')}</div>
+                <div class="drug-name-en">${escapeHtml(drug.enName || '無英文品名')}</div>
+            </div>
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap;">${badges}</div>
+        </div>
+        <span class="badge-license">📋 ${escapeHtml(drug.licenseNumber)}${drug.licenseType ? ' · '+escapeHtml(drug.licenseType) : ''}</span>
     </div>
 
     <div class="info-section">
         <div class="info-label">💊 適應症</div>
-        <div class="info-content">${drug.indication || '無資料'}</div>
+        <div class="info-content">${escapeHtml(drug.indication || '無資料')}</div>
     </div>
 
     <div class="info-section">
@@ -719,24 +537,44 @@
 
     <div class="info-section">
         <div class="info-label">📝 用法用量</div>
-        <div class="info-content">${drug.usage || '無資料'}</div>
+        <div class="info-content">${escapeHtml(drug.usage || '無資料')}</div>
     </div>
 
     ${nhiSection}
     ${imageSection}
 
-    ${hasLinks ? `<div class="links-row">${pkgBtns}${imgBtns}${nhiBtn}</div>` : ''}
+    <div class="links-row">
+        ${pkgBtns}
+        ${imgBtns}
+        ${nhiBtn}
+        <a href="${escapeAttr(fdaSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-gray">
+            🔍 食藥署官網
+        </a>
+        <a href="${escapeAttr(googleSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-gray">
+            🌐 Google 仿單
+        </a>
+        ${pkgBtns ? '<div class="link-helper-tip">💡 若仿單連結 404，請改用「Google 仿單」或「食藥署官網」備援</div>' : ''}
+    </div>
 </div>`;
-    }
+}
 
-    // ── Events ────────────────────────────────────────────────────
-    searchBtn.addEventListener('click', searchDrugs);
-    searchInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') searchDrugs();
-    });
+// ── HTML escape ───────────────────────────────────────────────
+function escapeHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+}
+function escapeAttr(s) {
+    if (!s) return '';
+    return String(s).replace(/"/g, '&quot;');
+}
 
-    // ── Boot ──────────────────────────────────────────────────────
-    initDatabase();
+// ── Events ────────────────────────────────────────────────────
+searchBtn.addEventListener('click', searchDrugs);
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchDrugs(); });
+
+initDatabase();
 </script>
 </body>
 </html>
