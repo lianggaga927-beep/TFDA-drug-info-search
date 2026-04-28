@@ -26,27 +26,27 @@
 
 若需於本地環境進行除錯或開發，請依循以下步驟：
 
-### 1. 取得專案原始碼
+## 1. 取得專案原始碼
 git clone [https://github.com/lianggaga927-beep/TFDA-drug-info-search.git](https://github.com/lianggaga927-beep/TFDA-drug-info-search.git)
 
-### 2. 資料處理層開發 (Python)
+## 2. 資料處理層開發 (Python)
 建議使用虛擬環境隔離依賴套件：
 
-# 建立並啟動虛擬環境 (Windows)
+#### 建立並啟動虛擬環境 (Windows)
 python -m venv venv
 venv\Scripts\activate
 
-# 建立並啟動虛擬環境 (macOS/Linux)
+#### 建立並啟動虛擬環境 (macOS/Linux)
 python3 -m venv venv
 source venv/bin/activate
 
-# 安裝依賴套件
+#### 安裝依賴套件
 pip install -r requirements.txt
 
-# 執行資料更新腳本，生成最新 drugs_data.json
+#### 執行資料更新腳本，生成最新 drugs_data.json
 python build_data.py
 
-### 3. 前端展示層開發 (UI)
+## 3. 前端展示層開發 (UI)
 因瀏覽器對於本地 file:// 協定存在安全性限制（無法執行 fetch() 讀取本地 JSON），必須透過本地伺服器啟動：
 
 # 使用 Python 內建 HTTP 伺服器
