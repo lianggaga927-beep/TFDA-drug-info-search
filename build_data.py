@@ -38,8 +38,7 @@ TIMEOUT_SEC = 180
 # ────────────────────────────────────────────────────────────────
 
 
-def download(url: str, label: str, verify: bool = True) -> bytes:
-    """單純下載原始 bytes，回傳 (bytes, content_type)"""
+def download(url: str, label: str, verify: bool = True) -> tuple[bytes, str]:
     print(f"  ⬇  下載中：{label}")
     if not verify:
         print("     ℹ  停用 SSL 驗證")
@@ -51,12 +50,11 @@ def download(url: str, label: str, verify: bool = True) -> bytes:
     resp.raise_for_status()
     raw = resp.content
     ct  = resp.headers.get("Content-Type", "")
-    print(f"     ✓  下載完成（{len(raw)/1e6:.1f} MB，{time.time()-start:.1f} 秒，Content-Type={ct}）")
+    print(f"     ✓  下載完成（{len(raw)/1e6:.1f} MB，{time.time()-start:.1f} 秒）")
     return raw, ct
 
 
 def smart_decode(raw: bytes) -> str:
-    """BOM 偵測 + 多編碼嘗試，最後剝除殘餘 BOM"""
     if raw[:2] == b'\xff\xfe':
         return raw.decode('utf-16', errors='replace').lstrip('\ufeff')
     if raw[:2] == b'\xfe\xff':
@@ -72,74 +70,65 @@ def smart_decode(raw: bytes) -> str:
 
 
 def fetch_fda_json(url: str, label: str) -> list:
-    """
-    食藥署 API 實際回傳 ZIP 檔，內含一個 JSON 檔。
-    解 ZIP → 取第一個 .json → 解析。
-    """
+    """FDA：ZIP → 取出內部 JSON → 解析"""
     try:
-        raw, ct = download(url, label)
-
-        # ZIP magic：50 4b 03 04
+        raw, _ = download(url, label)
         if raw[:4] != b'PK\x03\x04':
-            print(f"     ⚠  非 ZIP 格式（前4 bytes={raw[:4].hex()}），改嘗試直接解析 JSON")
-            text = smart_decode(raw)
-            return json.loads(text)
+            return json.loads(smart_decode(raw))
 
-        # 解 ZIP
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
-            names = zf.namelist()
-            print(f"     ℹ  ZIP 內含檔案：{names}")
-            # 找出 JSON 檔（通常只有一個）
-            json_names = [n for n in names if n.lower().endswith('.json')]
-            if not json_names:
-                # 沒有 .json 副檔名就拿第一個檔案
-                json_names = names
+            json_names = [n for n in zf.namelist() if n.lower().endswith('.json')] or zf.namelist()
             with zf.open(json_names[0]) as f:
                 inner = f.read()
-
-        print(f"     ℹ  解壓出檔案：{json_names[0]}（{len(inner)/1e6:.1f} MB）")
-        text = smart_decode(inner)
-        result = json.loads(text)
-        print(f"     ✓  JSON 解析成功，筆數：{len(result):,}")
+        print(f"     ℹ  解壓出：{json_names[0]}（{len(inner)/1e6:.1f} MB）")
+        result = json.loads(smart_decode(inner))
+        print(f"     ✓  解析成功，筆數：{len(result):,}")
         return result
-
     except Exception as e:
         print(f"     ✗  失敗：{e}", file=sys.stderr)
         return []
 
 
 def fetch_nhi_csv(url: str, label: str) -> list:
-    """
-    健保署 API 實際回傳 CSV 檔（UTF-8 BOM）。
-    解析 CSV → 轉成 list of dict。
-    """
+    """NHI：CSV（UTF-8 BOM）→ DictReader"""
     try:
-        raw, ct = download(url, label, verify=False)
-
+        raw, _ = download(url, label, verify=False)
         text = smart_decode(raw)
-        print(f"     ℹ  CSV 文字長度：{len(text):,} 字元")
-
-        # 用 csv.DictReader 解析
-        reader = csv.DictReader(io.StringIO(text))
-        records = list(reader)
+        records = list(csv.DictReader(io.StringIO(text)))
         print(f"     ✓  CSV 解析成功，筆數：{len(records):,}")
-        if records:
-            print(f"     ℹ  欄位：{list(records[0].keys())[:8]}")
         return records
-
     except Exception as e:
         print(f"     ✗  失敗：{e}", file=sys.stderr)
         return []
 
 
-def find_field(row: dict, *candidates: str) -> str:
-    """從多個可能的欄位名取值（CSV 欄位名可能含空白或變體）"""
-    for key in row.keys():
-        key_clean = key.strip()
-        for cand in candidates:
-            if cand in key_clean:
-                return (row[key] or "").strip()
-    return ""
+def detect_field(rows: list, *patterns: str) -> str | None:
+    """
+    從第一筆資料找出第一個符合的欄位名。
+    順序：先精確匹配 → 再 contains 匹配。
+    """
+    if not rows:
+        return None
+    keys = [str(k).strip() for k in rows[0].keys()]
+    # 精確
+    for p in patterns:
+        if p in keys:
+            return p
+    # 模糊（contains）
+    for p in patterns:
+        for k in keys:
+            if p in k:
+                return k
+    return None
+
+
+def show_keys(label: str, rows: list):
+    if rows:
+        print(f"  📋 {label}（{len(rows[0])} 個欄位）：")
+        keys = list(rows[0].keys())
+        # 每行印 4 個欄位
+        for i in range(0, len(keys), 4):
+            print(f"       {' | '.join(keys[i:i+4])}")
 
 
 def main():
@@ -161,48 +150,79 @@ def main():
     print(f"  NHI     筆數：{len(raw_nhi):,}")
 
     if not raw37:
-        print("\n⚠  API 37 無資料，無法繼續", file=sys.stderr)
-        sys.exit(1)
+        sys.exit("\n⚠  API 37 無資料，無法繼續")
 
-    # ── 列印第一筆資料以協助對欄位 ─────────────────────────────
-    if raw37:
-        print(f"\n  📋 API 37 第一筆樣本鍵：{list(raw37[0].keys())[:8]}")
-    if raw39:
-        print(f"  📋 API 39 第一筆樣本鍵：{list(raw39[0].keys())[:8]}")
-    if raw42:
-        print(f"  📋 API 42 第一筆樣本鍵：{list(raw42[0].keys())[:8]}")
-    if raw_nhi:
-        print(f"  📋 NHI    第一筆樣本鍵：{list(raw_nhi[0].keys())[:8]}")
+    # ── 列出完整欄位 ─────────────────────────────────────────────
+    print("\n  === 完整欄位清單 ===")
+    show_keys("API 37", raw37)
+    show_keys("API 39", raw39)
+    show_keys("API 42", raw42)
+    show_keys("NHI",    raw_nhi)
+
+    # ── 自動偵測欄位映射 ────────────────────────────────────────
+    print("\n  === 自動欄位映射 ===")
+
+    # API 37（主表）
+    K37_indication = detect_field(raw37, "適應症")
+    K37_ingredient = detect_field(raw37, "主成分", "成分")
+    K37_usage      = detect_field(raw37, "用法用量", "用法及用量", "用法")
+    print(f"  API 37: 適應症={K37_indication}  成分={K37_ingredient}  用法={K37_usage}")
+
+    # API 39（仿單）
+    K39_lic     = detect_field(raw39, "許可證字號")
+    K39_package = detect_field(raw39, "仿單圖檔連結", "仿單檔案連結", "仿單連結")
+    K39_outer   = detect_field(raw39, "外盒圖檔連結", "外盒檔案連結", "外盒連結")
+    print(f"  API 39: lic={K39_lic}  仿單={K39_package}  外盒={K39_outer}")
+
+    # API 42（外觀）
+    K42_lic   = detect_field(raw42, "許可證字號")
+    K42_image = detect_field(raw42, "外觀圖檔連結", "外觀圖檔", "圖檔連結", "圖檔名稱", "圖檔")
+    print(f"  API 42: lic={K42_lic}  圖檔={K42_image}")
+
+    # NHI（健保）
+    KN_lic     = detect_field(raw_nhi, "藥品許可證", "許可證字號", "許可證", "藥品代號")
+    KN_chapter = detect_field(raw_nhi, "給付規定章節", "給付規定")
+    KN_link    = detect_field(raw_nhi, "給付規定章節連結", "給付規定連結", "連結")
+    print(f"  NHI: lic={KN_lic}  章節={KN_chapter}  連結={KN_link}")
 
     # ── Step 2：建立索引 ─────────────────────────────────────────
     print("\n【Step 2】建立索引字典...")
 
-    # API 39：仿單
+    # API 39：仿單（合併仿單圖檔 + 外盒圖檔到 packageLinks）
     pkg_dict: dict[str, list] = {}
-    for row in raw39:
-        lic  = (row.get("許可證字號") or "").strip()
-        link = (row.get("仿單檔案連結") or row.get("仿單連結") or row.get("外盒檔案連結") or "").strip()
-        if lic and link:
-            pkg_dict.setdefault(lic, []).append(link)
+    if K39_lic:
+        for row in raw39:
+            lic = (row.get(K39_lic) or "").strip()
+            if not lic:
+                continue
+            for key in (K39_package, K39_outer):
+                if key:
+                    link = (row.get(key) or "").strip()
+                    if link:
+                        pkg_dict.setdefault(lic, []).append(link)
 
-    # API 42：外觀圖
+    # API 42：外觀圖檔
     img_dict: dict[str, list] = {}
-    for row in raw42:
-        lic = (row.get("許可證字號") or "").strip()
-        img = (row.get("外觀圖檔連結") or row.get("圖檔名稱") or row.get("圖檔連結") or "").strip()
-        if lic and img:
-            img_dict.setdefault(lic, []).append(img)
+    if K42_lic and K42_image:
+        for row in raw42:
+            lic = (row.get(K42_lic) or "").strip()
+            img = (row.get(K42_image) or "").strip()
+            if lic and img:
+                img_dict.setdefault(lic, []).append(img)
 
-    # NHI：健保給付（CSV 欄位）
+    # NHI：健保給付
     nhi_dict: dict[str, dict] = {}
-    for row in raw_nhi:
-        lic = find_field(row, "藥品許可證", "許可證")
-        if not lic:
-            continue
-        nhi_dict[lic] = {
-            "nhiChapter": find_field(row, "給付規定章節", "給付規定"),
-            "nhiLink":    find_field(row, "給付規定連結", "連結"),
-        }
+    if KN_lic:
+        for row in raw_nhi:
+            lic = (row.get(KN_lic) or "").strip()
+            if not lic:
+                continue
+            chapter = (row.get(KN_chapter) or "").strip() if KN_chapter else ""
+            link    = (row.get(KN_link)    or "").strip() if KN_link    else ""
+            if chapter or link:
+                # 同一個許可證可能多筆，保留第一筆有效記錄
+                if lic not in nhi_dict:
+                    nhi_dict[lic] = {"nhiChapter": chapter, "nhiLink": link}
 
     print(f"  仿單索引：{len(pkg_dict):,}  圖檔索引：{len(img_dict):,}  健保索引：{len(nhi_dict):,}")
 
@@ -218,9 +238,9 @@ def main():
             "licenseNumber": lic,
             "chName":        (drug.get("中文品名") or "").strip(),
             "enName":        (drug.get("英文品名") or "").strip(),
-            "indication":    (drug.get("適應症")   or "").strip(),
-            "ingredients":   (drug.get("主成分名稱") or drug.get("成分") or "").strip(),
-            "usage":         (drug.get("用法用量") or "").strip(),
+            "indication":    (drug.get(K37_indication) or "").strip() if K37_indication else "",
+            "ingredients":   (drug.get(K37_ingredient) or "").strip() if K37_ingredient else "",
+            "usage":         (drug.get(K37_usage)      or "").strip() if K37_usage      else "",
             "packageLinks":  pkg_dict.get(lic, []),
             "imageLinks":    img_dict.get(lic, []),
             "nhiChapter":    nhi.get("nhiChapter", ""),
@@ -242,6 +262,9 @@ def main():
 
     # ── Step 5：健全性檢查 ──────────────────────────────────────
     print("\n【Step 5】健全性檢查...")
+    print(f"  有適應症　：{sum(1 for d in output if d['indication']):,} 筆")
+    print(f"  有成分　　：{sum(1 for d in output if d['ingredients']):,} 筆")
+    print(f"  有用法　　：{sum(1 for d in output if d['usage']):,} 筆")
     print(f"  有仿單連結：{sum(1 for d in output if d['packageLinks']):,} 筆")
     print(f"  有外觀圖檔：{sum(1 for d in output if d['imageLinks']):,} 筆")
     print(f"  有健保給付：{sum(1 for d in output if d['nhiChapter']):,} 筆")

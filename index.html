@@ -8,11 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --primary-blue: #2563eb;
@@ -25,9 +21,15 @@
             --text-primary: #1e293b;
             --text-secondary: #64748b;
             --border-color: #e2e8f0;
-            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 25px -3px rgba(37, 99, 235, 0.1);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px -3px rgba(37,99,235,0.1);
+            --amber-bg: #fffbeb;
+            --amber-border: #f59e0b;
+            --amber-text: #92400e;
+            --teal-bg: #f0fdfa;
+            --teal-border: #0d9488;
+            --teal-text: #134e4a;
         }
 
         body {
@@ -38,78 +40,70 @@
             line-height: 1.6;
         }
 
+        /* ── Header ──────────────────────────────────────────────── */
+        header {
+            background: var(--bg-white);
+            border-bottom: 2px solid var(--primary-blue);
+            box-shadow: var(--shadow-md);
+            animation: slideDown 0.5s ease-out;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            letter-spacing: -0.025em;
+        }
+
+        .header-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .data-badge {
+            background: var(--lighter-blue);
+            color: var(--primary-blue);
+            border: 1px solid var(--light-blue);
+            border-radius: 20px;
+            padding: 0.25rem 0.875rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* ── Container ───────────────────────────────────────────── */
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 2rem 1.5rem;
         }
 
-        /* Header */
-        header {
-            background: var(--bg-white);
-            border-bottom: 2px solid var(--primary-blue);
-            box-shadow: var(--shadow-md);
-            margin-bottom: 2.5rem;
-            animation: slideDown 0.5s ease-out;
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translateY(-20px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1.5rem 1.5rem;
-        }
-
-        h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary-blue);
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.025em;
-        }
-
-        .subtitle {
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-        }
-
-        /* Search Section */
+        /* ── Search ──────────────────────────────────────────────── */
         .search-section {
             background: var(--bg-white);
             border-radius: 16px;
-            padding: 2rem;
+            padding: 1.75rem 2rem;
             box-shadow: var(--shadow-lg);
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             border: 1px solid var(--border-color);
             animation: fadeIn 0.6s ease-out 0.2s both;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .search-box {
             display: flex;
             gap: 0.75rem;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
 
         #searchInput {
@@ -140,42 +134,58 @@
             cursor: pointer;
             transition: all 0.3s ease;
             font-family: 'Noto Sans TC', sans-serif;
-            box-shadow: var(--shadow-sm);
+            white-space: nowrap;
         }
 
-        #searchBtn:hover {
+        #searchBtn:hover:not(:disabled) {
             background: var(--dark-blue);
             transform: translateY(-1px);
             box-shadow: var(--shadow-md);
         }
 
-        #searchBtn:active {
-            transform: translateY(0);
-        }
-
         #searchBtn:disabled {
             background: var(--text-secondary);
             cursor: not-allowed;
-            transform: none;
         }
 
         .search-hint {
-            font-size: 0.875rem;
+            font-size: 0.825rem;
             color: var(--text-secondary);
-            margin-top: 0.5rem;
         }
 
-        /* Loading Spinner */
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 3rem;
+        /* ── Init / Loading banner ───────────────────────────────── */
+        .init-banner {
+            background: var(--lighter-blue);
+            border: 1px solid var(--light-blue);
+            border-radius: 10px;
+            padding: 0.875rem 1.125rem;
+            margin-top: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
             color: var(--primary-blue);
         }
 
-        .loading.active {
-            display: block;
+        .mini-spinner {
+            border: 2px solid var(--light-blue);
+            border-top: 2px solid var(--primary-blue);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            animation: spin 0.8s linear infinite;
         }
+
+        /* ── Loading ─────────────────────────────────────────────── */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2.5rem;
+            color: var(--primary-blue);
+        }
+
+        .loading.active { display: block; }
 
         .spinner {
             border: 3px solid var(--light-blue);
@@ -184,22 +194,21 @@
             width: 40px;
             height: 40px;
             animation: spin 0.8s linear infinite;
-            margin: 0 auto 1rem;
+            margin: 0 auto 0.875rem;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Results Section */
-        .results-section {
-            display: none;
-        }
-
+        /* ── Results ─────────────────────────────────────────────── */
+        .results-section { display: none; }
         .results-section.active {
             display: block;
-            animation: fadeIn 0.5s ease-out;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .results-meta {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            padding-left: 0.25rem;
         }
 
         .no-results {
@@ -211,72 +220,61 @@
             border: 1px solid var(--border-color);
         }
 
-        .no-results-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        /* Drug Card */
+        /* ── Drug Card ───────────────────────────────────────────── */
         .drug-card {
             background: var(--bg-white);
             border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
+            padding: 1.75rem 2rem;
+            margin-bottom: 1.25rem;
             box-shadow: var(--shadow-lg);
             border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .drug-card:hover {
-            box-shadow: 0 12px 30px -5px rgba(37, 99, 235, 0.15);
             transform: translateY(-2px);
+            box-shadow: 0 14px 30px -5px rgba(37,99,235,0.15);
         }
 
         .drug-header {
             border-bottom: 2px solid var(--lighter-blue);
             padding-bottom: 1rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
         }
 
         .drug-name-ch {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 700;
             color: var(--primary-blue);
-            margin-bottom: 0.25rem;
         }
 
         .drug-name-en {
-            font-size: 1.125rem;
-            font-weight: 500;
+            font-size: 1rem;
             color: var(--text-secondary);
-            margin-bottom: 0.5rem;
             font-style: italic;
+            margin: 0.2rem 0 0.5rem;
         }
 
-        .license-number {
+        .license-badge {
             display: inline-block;
             background: var(--lighter-blue);
             color: var(--primary-blue);
-            padding: 0.375rem 0.875rem;
+            padding: 0.3rem 0.875rem;
             border-radius: 8px;
-            font-size: 0.875rem;
+            font-size: 0.825rem;
             font-weight: 600;
-            margin-top: 0.5rem;
         }
 
+        /* ── Info Sections ───────────────────────────────────────── */
         .info-section {
-            margin-bottom: 1.5rem;
-        }
-
-        .info-section:last-child {
-            margin-bottom: 0;
+            margin-bottom: 1.25rem;
         }
 
         .info-label {
             font-weight: 600;
             color: var(--primary-blue);
             margin-bottom: 0.5rem;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -286,294 +284,459 @@
             content: '';
             display: inline-block;
             width: 4px;
-            height: 16px;
+            height: 15px;
             background: var(--primary-blue);
             border-radius: 2px;
+            flex-shrink: 0;
         }
 
         .info-content {
             color: var(--text-primary);
-            font-size: 0.95rem;
-            line-height: 1.7;
-            padding-left: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.75;
+            padding-left: 0.875rem;
         }
 
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-
-        .ingredient-item {
-            background: var(--lighter-blue);
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            border-left: 3px solid var(--primary-blue);
-        }
-
-        /* Links Section */
-        .links-section {
+        /* ── Ingredients ─────────────────────────────────────────── */
+        .ingredients-wrap {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.75rem;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
+            gap: 0.5rem;
+            padding-left: 0.875rem;
+        }
+
+        .ingredient-pill {
+            background: var(--lighter-blue);
+            border: 1px solid var(--light-blue);
+            color: var(--dark-blue);
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.825rem;
+        }
+
+        /* ── NHI Section ─────────────────────────────────────────── */
+        .nhi-section {
+            background: var(--amber-bg);
+            border: 1.5px solid var(--amber-border);
+            border-radius: 12px;
+            padding: 1.125rem 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .nhi-section .info-label {
+            color: var(--amber-text);
+        }
+
+        .nhi-section .info-label::before {
+            background: var(--amber-border);
+        }
+
+        .nhi-section .info-content {
+            color: var(--amber-text);
+        }
+
+        /* ── Image Preview ───────────────────────────────────────── */
+        .image-section {
+            background: var(--teal-bg);
+            border: 1.5px solid var(--teal-border);
+            border-radius: 12px;
+            padding: 1.125rem 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .image-section .info-label {
+            color: var(--teal-text);
+        }
+
+        .image-section .info-label::before {
+            background: var(--teal-border);
+        }
+
+        .image-thumbs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding-left: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .image-thumb-link {
+            display: inline-block;
+            background: white;
+            border: 1px solid var(--teal-border);
+            color: var(--teal-text);
+            padding: 0.3rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.825rem;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .image-thumb-link:hover {
+            background: var(--teal-border);
+            color: white;
+        }
+
+        /* ── Links Row ───────────────────────────────────────────── */
+        .links-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.625rem;
+            padding-top: 1.125rem;
             border-top: 1px solid var(--border-color);
         }
 
         .link-btn {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.625rem 1.125rem;
-            background: var(--primary-blue);
-            color: white;
-            text-decoration: none;
+            gap: 0.4rem;
+            padding: 0.55rem 1.125rem;
             border-radius: 8px;
             font-size: 0.875rem;
             font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow-sm);
+            text-decoration: none;
+            transition: all 0.2s ease;
         }
 
-        .link-btn:hover {
+        .link-btn-primary {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .link-btn-primary:hover {
             background: var(--dark-blue);
             transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
         }
 
-        .link-btn.secondary {
+        .link-btn-outline {
             background: var(--bg-white);
             color: var(--primary-blue);
             border: 2px solid var(--primary-blue);
         }
 
-        .link-btn.secondary:hover {
+        .link-btn-outline:hover {
             background: var(--lighter-blue);
         }
 
-        /* NHI Payment Section */
-        .nhi-section {
-            background: linear-gradient(135deg, #fef3c7 0%, #fef9e7 100%);
-            border: 2px solid #f59e0b;
-            border-radius: 12px;
-            padding: 1.25rem;
-            margin-top: 1rem;
+        .link-btn-amber {
+            background: var(--amber-bg);
+            color: var(--amber-text);
+            border: 2px solid var(--amber-border);
         }
 
-        .nhi-section .info-label {
-            color: #d97706;
+        .link-btn-amber:hover {
+            background: var(--amber-border);
+            color: white;
         }
 
-        .nhi-section .info-label::before {
-            background: #f59e0b;
+        /* ── Error ───────────────────────────────────────────────── */
+        .error-msg {
+            background: #fee2e2;
+            border: 1.5px solid #ef4444;
+            color: #991b1b;
+            padding: 0.875rem 1.125rem;
+            border-radius: 10px;
+            margin-top: 0.75rem;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
         }
 
-        /* Footer */
+        .error-msg.active { display: block; }
+
+        /* ── Footer ──────────────────────────────────────────────── */
         footer {
             text-align: center;
             padding: 2rem 1rem;
             color: var(--text-secondary);
-            font-size: 0.875rem;
-            margin-top: 3rem;
+            font-size: 0.8rem;
+            margin-top: 2rem;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            .search-box {
-                flex-direction: column;
-            }
-
-            #searchBtn {
-                width: 100%;
-            }
-
-            .drug-card {
-                padding: 1.5rem;
-            }
-
-            .info-grid {
-                grid-template-columns: 1fr;
-            }
+        footer a {
+            color: var(--primary-blue);
+            text-decoration: none;
         }
 
-        /* Error Message */
-        .error-message {
-            background: #fee2e2;
-            border: 2px solid #ef4444;
-            color: #991b1b;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            display: none;
+        /* ── Animations ──────────────────────────────────────────── */
+        @keyframes slideDown {
+            from { transform: translateY(-16px); opacity: 0; }
+            to   { transform: translateY(0); opacity: 1; }
         }
 
-        .error-message.active {
-            display: block;
-            animation: fadeIn 0.3s ease-out;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── Responsive ──────────────────────────────────────────── */
+        @media (max-width: 640px) {
+            h1 { font-size: 1.375rem; }
+            .search-box { flex-direction: column; }
+            #searchBtn { width: 100%; }
+            .drug-card { padding: 1.25rem 1.25rem; }
         }
     </style>
 </head>
 <body>
-    <header>
-        <div class="header-content">
+<header>
+    <div class="header-content">
+        <div>
             <h1>🏥 藥品資訊查詢系統</h1>
-            <p class="subtitle">整合食藥署與健保署開放資料 | 提供完整藥品許可、仿單、給付規定資訊</p>
+            <p class="header-subtitle">整合食藥署與健保署開放資料</p>
         </div>
-    </header>
+        <span class="data-badge" id="dataBadge">資料載入中...</span>
+    </div>
+</header>
 
-    <div class="container">
-        <div class="search-section">
-            <div class="search-box">
-                <input 
-                    type="text" 
-                    id="searchInput" 
-                    placeholder="請輸入藥品中文品名或英文品名 (例如: 普拿疼、Panadol)" 
-                    autocomplete="off"
-                >
-                <button id="searchBtn">🔍 搜尋</button>
-            </div>
-            <p class="search-hint">💡 支援部分關鍵字查詢,例如輸入「阿斯匹靈」或「Aspirin」</p>
-            <div class="error-message" id="errorMessage"></div>
-        </div>
+<div class="container">
 
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>正在查詢藥品資料,請稍候...</p>
+    <div class="search-section">
+        <div class="search-box">
+            <input type="text" id="searchInput"
+                   placeholder="請輸入藥品中文品名或英文品名（例如：普拿疼、Amoxicillin）"
+                   autocomplete="off" disabled>
+            <button id="searchBtn" disabled>🔍 搜尋</button>
         </div>
-
-        <div class="results-section" id="resultsSection">
-            <div id="resultsContainer"></div>
+        <p class="search-hint">💡 支援部分關鍵字查詢，搜尋結果顯示前 20 筆</p>
+        <div class="init-banner" id="initBanner">
+            <div class="mini-spinner"></div>
+            <span>正在載入藥品資料庫，請稍候…（首次載入約需 1-3 秒）</span>
         </div>
+        <div class="error-msg" id="errorMsg"></div>
     </div>
 
-    <footer>
-        <p>資料來源: 衛生福利部食品藥物管理署開放資料平台、健保署開放資料</p>
-        <p style="margin-top: 0.5rem; font-size: 0.8rem;">本系統僅供參考,實際用藥請遵循醫師或藥師指示</p>
-    </footer>
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>搜尋中...</p>
+    </div>
 
-    <script>
-// 【重要】請將下方常數替換為您剛剛在 GAS 複製的 Web App URL
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzqWzXJS0JgNFswcJskYMPw6RmyujJQjtVlQYlxCgbMDb21w94keuGIdKHyLdzEjTJf/exec';
+    <div class="results-section" id="resultsSection">
+        <p class="results-meta" id="resultsMeta"></p>
+        <div id="resultsContainer"></div>
+    </div>
 
-// DOM 元素綁定
-const searchInput = document.getElementById('searchInput');
-const searchBtn = document.getElementById('searchBtn');
-const loading = document.getElementById('loading');
-const resultsSection = document.getElementById('resultsSection');
-const resultsContainer = document.getElementById('resultsContainer');
-const errorMessage = document.getElementById('errorMessage');
+</div>
 
-// UI 狀態控制
-function toggleLoading(isLoading) {
-    loading.classList.toggle('active', isLoading);
-    searchBtn.disabled = isLoading;
-    if (isLoading) {
-        resultsSection.classList.remove('active');
-        errorMessage.classList.remove('active');
+<footer>
+    <p>資料來源：
+        <a href="https://data.fda.gov.tw/" target="_blank">衛生福利部食品藥物管理署</a> ·
+        <a href="https://info.nhi.gov.tw/" target="_blank">衛生福利部中央健康保險署</a>
+    </p>
+    <p style="margin-top:0.4rem;">本系統僅供參考，實際用藥請遵循醫師或藥師指示</p>
+</footer>
+
+<script>
+    // ═══════════════════════════════════════════════════════════════
+    //  設定：本地靜態資料路徑（由 build_data.py 產生後上傳至 GitHub）
+    // ═══════════════════════════════════════════════════════════════
+    const DATA_URL = './drugs_data.json';
+
+    // ── DOM refs ──────────────────────────────────────────────────
+    const searchInput    = document.getElementById('searchInput');
+    const searchBtn      = document.getElementById('searchBtn');
+    const loading        = document.getElementById('loading');
+    const resultsSection = document.getElementById('resultsSection');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const resultsMeta    = document.getElementById('resultsMeta');
+    const errorMsg       = document.getElementById('errorMsg');
+    const initBanner     = document.getElementById('initBanner');
+    const dataBadge      = document.getElementById('dataBadge');
+
+    // ── State ─────────────────────────────────────────────────────
+    let drugDatabase = [];  // 全域快取，載入一次就可多次搜尋
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function showError(msg) {
+        errorMsg.textContent = msg;
+        errorMsg.classList.add('active');
     }
-}
 
-function showError(message) {
-    errorMessage.textContent = message;
-    errorMessage.classList.add('active');
-}
-
-// 核心搜尋邏輯
-async function searchDrugs() {
-    const keyword = searchInput.value.trim();
-    if (!keyword) {
-        showError('請輸入藥品名稱');
-        return;
+    function hideError() {
+        errorMsg.classList.remove('active');
     }
 
-    toggleLoading(true);
+    function setLoading(on) {
+        loading.classList.toggle('active', on);
+        searchBtn.disabled = on;
+    }
 
-    try {
-        // 向 GAS 後端發送 GET 請求 (自帶 CORS 解除)
-        const response = await fetch(`${GAS_API_URL}?keyword=${encodeURIComponent(keyword)}`);
-        
-        if (!response.ok) throw new Error('網路請求失敗');
-        
-        const result = await response.json();
+    // ── Init: 載入本地靜態 JSON ───────────────────────────────────
+    async function initDatabase() {
+        try {
+            const resp = await fetch(DATA_URL);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const json = await resp.json();
 
-        if (!result.success) {
-            throw new Error(result.message || '伺服器回傳異常');
+            // build_data.py 輸出格式為 { _meta: {...}, data: [...] }
+            // 也相容純陣列格式（舊版）
+            drugDatabase = Array.isArray(json) ? json : (json.data || []);
+
+            const meta = json._meta || {};
+            const count = drugDatabase.length.toLocaleString();
+            const date  = meta.generatedAt
+                ? new Date(meta.generatedAt).toLocaleDateString('zh-TW')
+                : '未知';
+
+            // 啟用搜尋介面
+            searchInput.disabled = false;
+            searchBtn.disabled = false;
+            initBanner.style.display = 'none';
+            dataBadge.textContent = `共 ${count} 筆 · 更新：${date}`;
+            searchInput.focus();
+
+        } catch (err) {
+            console.error('資料庫載入失敗:', err);
+            initBanner.innerHTML = '⚠️ 資料庫載入失敗，請確認 <code>drugs_data.json</code> 是否已上傳至 GitHub 儲存庫根目錄。';
+            initBanner.style.background = '#fee2e2';
+            initBanner.style.color = '#991b1b';
+            dataBadge.textContent = '載入失敗';
+        }
+    }
+
+    // ── Search ────────────────────────────────────────────────────
+    function searchDrugs() {
+        hideError();
+        const keyword = searchInput.value.trim();
+
+        if (!keyword) {
+            showError('請輸入藥品名稱');
+            return;
         }
 
-        renderResults(result.data);
+        if (drugDatabase.length === 0) {
+            showError('資料庫尚未載入，請稍候再試');
+            return;
+        }
 
-    } catch (error) {
-        console.error('Fetch Error:', error);
-        showError('查詢失敗，請檢查網路連線或稍後再試。');
-    } finally {
-        toggleLoading(false);
+        setLoading(true);
+        resultsSection.classList.remove('active');
+
+        // 用 setTimeout 讓 spinner 有機會渲染
+        setTimeout(() => {
+            const lower = keyword.toLowerCase();
+            const matched = drugDatabase.filter(d =>
+                (d.chName || '').toLowerCase().includes(lower) ||
+                (d.enName || '').toLowerCase().includes(lower)
+            );
+            const results = matched.slice(0, 20);
+
+            renderResults(results, matched.length);
+            setLoading(false);
+        }, 50);
     }
-}
 
-// 渲染結果
-function renderResults(drugs) {
-    if (!drugs || drugs.length === 0) {
-        resultsContainer.innerHTML = `
-            <div class="no-results">
-                <div class="no-results-icon">🔍</div>
-                <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">找不到符合的藥品</h3>
-                <p style="color: var(--text-secondary);">請嘗試其他關鍵字或檢查拼寫</p>
-            </div>
-        `;
+    // ── Render ────────────────────────────────────────────────────
+    function renderResults(results, totalMatched) {
+        if (results.length === 0) {
+            resultsContainer.innerHTML = `
+                <div class="no-results">
+                    <div style="font-size:2.5rem;margin-bottom:0.75rem">🔍</div>
+                    <h3 style="margin-bottom:0.5rem">找不到符合的藥品</h3>
+                    <p style="color:var(--text-secondary)">請嘗試其他關鍵字或確認拼寫是否正確</p>
+                </div>`;
+            resultsMeta.textContent = '';
+        } else {
+            resultsMeta.textContent = totalMatched > 20
+                ? `找到 ${totalMatched.toLocaleString()} 筆結果，顯示前 20 筆（請使用更精確的關鍵字縮小範圍）`
+                : `找到 ${totalMatched} 筆結果`;
+            resultsContainer.innerHTML = results.map(buildCard).join('');
+        }
         resultsSection.classList.add('active');
-        return;
     }
 
-    resultsContainer.innerHTML = drugs.map(drug => createDrugCard(drug)).join('');
-    resultsSection.classList.add('active');
-}
+    // ── Card Builder ──────────────────────────────────────────────
+    function buildCard(drug) {
+        // 成分 Pill
+        const pills = (drug.ingredients || '')
+            .split(/[;；]/)
+            .map(s => s.trim())
+            .filter(Boolean)
+            .map(s => `<span class="ingredient-pill">${s}</span>`)
+            .join('') || '<span style="color:var(--text-secondary)">無資料</span>';
 
-// 建立卡片 UI (對接 GAS 回傳的簡化資料結構)
-function createDrugCard(drug) {
-    const ingredientsList = (drug.ingredients || '').split(';').filter(i => i.trim());
-    
-    return `
-        <div class="drug-card">
-            <div class="drug-header">
-                <div class="drug-name-ch">${drug.chName || '無資料'}</div>
-                <div class="drug-name-en">${drug.enName || '無資料'}</div>
-                <span class="license-number">📋 ${drug.licenseNumber}</span>
-            </div>
-            <div class="info-section">
-                <div class="info-label">💊 適應症</div>
-                <div class="info-content">${drug.indication || '無資料'}</div>
-            </div>
-            <div class="info-section">
-                <div class="info-label">🧪 主要成分</div>
-                <div class="info-grid">
-                    ${ingredientsList.map(ing => `<div class="ingredient-item">${ing.trim()}</div>`).join('')}
-                </div>
-            </div>
-            <div class="info-section">
-                <div class="info-label">📝 用法用量</div>
-                <div class="info-content">${drug.usage || '無資料'}</div>
-            </div>
-            <div class="links-section">
-                ${drug.packageLink ? `
-                    <a href="${drug.packageLink}" target="_blank" class="link-btn">
-                        📄 查看藥品仿單
-                    </a>
-                ` : '<span style="color:var(--text-secondary);font-size:0.875rem;">無仿單連結</span>'}
-            </div>
-        </div>
-    `;
-}
+        // 仿單按鈕（可能有多個）
+        const pkgBtns = (drug.packageLinks || []).map((url, i) => `
+            <a href="${url}" target="_blank" rel="noopener" class="link-btn link-btn-primary">
+                📄 藥品仿單${drug.packageLinks.length > 1 ? ' ' + (i + 1) : ''}
+            </a>`).join('') || '';
 
-// 事件監聽
-searchBtn.addEventListener('click', searchDrugs);
-searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') searchDrugs();
-});
-    </script>
+        // 外觀圖連結（在圖檔區）
+        const imgLinks = (drug.imageLinks || []).map((url, i) => `
+            <a href="${url}" target="_blank" rel="noopener" class="image-thumb-link">
+                🖼 圖檔${drug.imageLinks.length > 1 ? ' ' + (i + 1) : ''}
+            </a>`).join('');
+
+        // 圖檔區塊（有才顯示）
+        const imageSection = imgLinks ? `
+            <div class="image-section">
+                <div class="info-label">🖼️ 藥品外觀圖檔</div>
+                <div class="image-thumbs">${imgLinks}</div>
+            </div>` : '';
+
+        // 健保給付區塊（有才顯示）
+        const nhiSection = drug.nhiChapter ? `
+            <div class="nhi-section">
+                <div class="info-label">💰 健保給付規定</div>
+                <div class="info-content">${drug.nhiChapter}</div>
+            </div>` : '';
+
+        // 健保連結按鈕
+        const nhiBtn = drug.nhiLink ? `
+            <a href="${drug.nhiLink}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
+                📊 健保給付連結
+            </a>` : '';
+
+        // 圖檔按鈕（放在連結列）
+        const imgBtns = (drug.imageLinks || []).length === 0 ? '' :
+            (drug.imageLinks || []).map((url, i) => `
+                <a href="${url}" target="_blank" rel="noopener" class="link-btn link-btn-outline">
+                    🖼️ 外觀圖${drug.imageLinks.length > 1 ? ' ' + (i + 1) : ''}
+                </a>`).join('');
+
+        const hasLinks = pkgBtns || imgBtns || nhiBtn;
+
+        return `
+<div class="drug-card">
+    <div class="drug-header">
+        <div class="drug-name-ch">${drug.chName || '無中文品名'}</div>
+        <div class="drug-name-en">${drug.enName || '無英文品名'}</div>
+        <span class="license-badge">📋 ${drug.licenseNumber}</span>
+    </div>
+
+    <div class="info-section">
+        <div class="info-label">💊 適應症</div>
+        <div class="info-content">${drug.indication || '無資料'}</div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-label">🧪 主要成分</div>
+        <div class="ingredients-wrap">${pills}</div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-label">📝 用法用量</div>
+        <div class="info-content">${drug.usage || '無資料'}</div>
+    </div>
+
+    ${nhiSection}
+    ${imageSection}
+
+    ${hasLinks ? `<div class="links-row">${pkgBtns}${imgBtns}${nhiBtn}</div>` : ''}
+</div>`;
+    }
+
+    // ── Events ────────────────────────────────────────────────────
+    searchBtn.addEventListener('click', searchDrugs);
+    searchInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') searchDrugs();
+    });
+
+    // ── Boot ──────────────────────────────────────────────────────
+    initDatabase();
+</script>
 </body>
 </html>
