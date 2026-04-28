@@ -1,5 +1,12 @@
 # TFDA 藥品資訊查詢系統 (TFDA Drug Info Search)
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Click%20Here-2563eb?style=flat-square)](https://lianggaga927-beep.github.io/TFDA-drug-info-search/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26.svg?style=flat-square&logo=html5&logoColor=white)]()
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E.svg?style=flat-square&logo=javascript&logoColor=black)]()
+[![Python](https://img.shields.io/badge/Python-3.10+-3776ab.svg?style=flat-square&logo=python&logoColor=white)]()
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF.svg?style=flat-square&logo=github-actions&logoColor=white)]()
+
 ## 系統架構結論
 本專案為無伺服器 (Serverless) 之純靜態網頁應用程式 (SPA)。核心機制為透過 GitHub Actions 定期觸發 Python 資料處理腳本，自食藥署 (TFDA) 介接原始開放資料，進行預先清洗 (Pre-fetch & Cleansing) 並生成輕量化靜態 JSON 快取檔。此架構徹底解決了直接於前端請求政府 API 所面臨的 CORS 限制、高網路延遲及瀏覽器記憶體溢出 (OOM) 等物理限制，實現毫秒級的客戶端檢索效能。
 
@@ -49,7 +56,7 @@ python build_data.py
 ## 3. 前端展示層開發 (UI)
 因瀏覽器對於本地 file:// 協定存在安全性限制（無法執行 fetch() 讀取本地 JSON），必須透過本地伺服器啟動：
 
-# 使用 Python 內建 HTTP 伺服器
+#### 使用 Python 內建 HTTP 伺服器
 python -m http.server 8000
 完成後，於瀏覽器造訪 http://localhost:8000 即可預覽介面。
 
