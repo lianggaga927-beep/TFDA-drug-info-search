@@ -1,21 +1,21 @@
 name: Build Drug Database
 
-# 觸發條件
 on:
-  workflow_dispatch:           # 手動觸發（你可以隨時在 Actions 頁面點「Run workflow」）
+  workflow_dispatch:
   schedule:
-    - cron: '0 18 1 * *'       # 每月 1 號 UTC 18:00 = 台灣 02:00 自動執行
+    - cron: '0 18 1 * *'       # 每月 1 號 UTC 18:00 = 台灣 02:00
   push:
     paths:
-      - 'build_data.py'        # 修改腳本本身時也跑一次
+      - 'build_data.py'
+      - 'nhi_payment_rules.pdf'  # PDF 更新時也重跑
 
 permissions:
-  contents: write              # 允許 commit & push
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -28,11 +28,21 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Install system dependencies (poppler for pdftotext)
+      - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y poppler-utils
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
+
+      - name: Check PDF status
+        run: |
+          if [ -f nhi_payment_rules.pdf ]; then
+            echo "✅ 找到健保給付規定 PDF（$(du -h nhi_payment_rules.pdf | cut -f1)）"
+          else
+            echo "⚠️  找不到 nhi_payment_rules.pdf，章節對照將跳過"
+            echo "    請至健保署下載最新 PDF 命名為 nhi_payment_rules.pdf 放入 repo 根目錄"
+            echo "    來源：https://www.nhi.gov.tw/ch/cp-13108-67ddf-2508-1.html"
+          fi
 
       - name: Build drug database
         run: python build_data.py
@@ -40,8 +50,14 @@ jobs:
       - name: Show output file info
         run: |
           ls -lh drugs_data.json
-          echo "---"
-          python -c "import json; d=json.load(open('drugs_data.json',encoding='utf-8')); print('總筆數:', d['_meta']['totalRecords'])"
+          python -c "
+          import json
+          d = json.load(open('drugs_data.json', encoding='utf-8'))
+          m = d['_meta']
+          print(f'總筆數: {m[\"totalRecords\"]:,}')
+          print(f'健保品項: {m[\"nhiRecords\"]:,}')
+          print(f'章節對照: {m[\"chaptersTotal\"]:,}')
+          "
 
       - name: Commit and push if changed
         run: |

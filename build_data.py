@@ -117,52 +117,37 @@ def fetch_nhi_csv(url, label):
 
 
 # ── 解析健保署完整給付規定 PDF（章節對照備援）───────────────────
+# 本地 PDF 路徑（放在 repo 根目錄，由維護者定期手動更新）
+LOCAL_PDF_PATH = "nhi_payment_rules.pdf"
+
 def fetch_nhi_chapters():
+    """
+    從本地 PDF 解析健保給付規定章節對照。
+    健保署官網會擋爬蟲（403），改由維護者定期手動下載 PDF 放入 repo。
+    下載來源：https://www.nhi.gov.tw/ch/cp-13108-67ddf-2508-1.html
+    """
     print("\n  📖 解析健保署完整給付規定 PDF...")
+
+    if not os.path.exists(LOCAL_PDF_PATH):
+        print(f"     ⚠  找不到本地 PDF（{LOCAL_PDF_PATH}），跳過章節對照")
+        print(f"     ℹ  請從健保署下載最新 PDF 並命名為 {LOCAL_PDF_PATH} 放入 repo 根目錄")
+        return {}
+
+    print(f"     ℹ  讀取本地 PDF：{LOCAL_PDF_PATH}（{os.path.getsize(LOCAL_PDF_PATH)/1e6:.1f} MB）")
+
     try:
-        resp = requests.get(NHI_PDF_PAGE, timeout=60, verify=False, headers={
-            "User-Agent": "Mozilla/5.0 TFDA-DrugSearch/1.0"
-        })
-        resp.raise_for_status()
-        html = resp.text
-
-        pdf_matches = re.findall(r'href="([^"]*完整給付規定[^"]*\.pdf)"', html)
-        if not pdf_matches:
-            pdf_matches = re.findall(r'href="([^"]*\.pdf)"', html)
-
-        if not pdf_matches:
-            print("     ⚠  網頁中找不到 PDF 連結，跳過章節對照")
-            return {}
-
-        pdf_url = pdf_matches[0]
-        if pdf_url.startswith('/'):
-            pdf_url = 'https://www.nhi.gov.tw' + pdf_url
-        print(f"     ℹ  PDF URL: {pdf_url}")
-
-        pdf_resp = requests.get(pdf_url, timeout=180, verify=False, headers={
-            "User-Agent": "Mozilla/5.0 TFDA-DrugSearch/1.0"
-        })
-        pdf_resp.raise_for_status()
-        pdf_bytes = pdf_resp.content
-        print(f"     ✓  PDF 下載完成（{len(pdf_bytes)/1e6:.1f} MB）")
-
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as f:
-            f.write(pdf_bytes)
-            pdf_path = f.name
-        txt_path = pdf_path.replace('.pdf', '.txt')
-
+        txt_path = LOCAL_PDF_PATH.replace(".pdf", "_extracted.txt")
         result = subprocess.run(
-            ['pdftotext', '-layout', pdf_path, txt_path],
+            ["pdftotext", "-layout", LOCAL_PDF_PATH, txt_path],
             capture_output=True, timeout=120
         )
         if result.returncode != 0:
             print(f"     ✗  pdftotext 失敗：{result.stderr.decode('utf-8', 'replace')}")
             return {}
 
-        with open(txt_path, 'r', encoding='utf-8') as f:
+        with open(txt_path, "r", encoding="utf-8") as f:
             text = f.read()
 
-        os.unlink(pdf_path)
         os.unlink(txt_path)
         print(f"     ℹ  提取文字 {len(text):,} 字元")
 
