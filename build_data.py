@@ -35,6 +35,17 @@ OUTPUT_FILE = "drugs_data.json"
 TIMEOUT_SEC = 180
 
 # 英文劑型/常用詞（比對核心字時排除）
+# 成分名常見干擾字（鹽類、單位）
+INGREDIENT_NOISE = {
+    'BESYLATE','MALEATE','HYDROCHLORIDE','HCL','SULFATE','SULPHATE',
+    'SODIUM','CALCIUM','POTASSIUM','MAGNESIUM','PHOSPHATE','CITRATE',
+    'TARTRATE','SUCCINATE','FUMARATE','MESYLATE','ACETATE','LACTATE',
+    'CHLORIDE','BROMIDE','IODIDE','OXIDE','MONOHYDRATE','DIHYDRATE',
+    'TRIHYDRATE','ANHYDROUS','HYDRATE','HYDRATED',
+    'TABLET','TABLETS','CAPSULE','CAPSULES','INJECTION','SOLUTION',
+    'GRAM','GRAMS','UNIT','UNITS',
+}
+
 FILLER_WORDS = {
     'TABLET','TABLETS','CAPSULE','CAPSULES','INJECTION','SOLUTION','SUSPENSION',
     'CREAM','OINTMENT','SYRUP','POWDER','GEL','LOTION','SPRAY','DROPS',
@@ -149,17 +160,34 @@ def core_words(name):
     return words - FILLER_WORDS
 
 
-def names_match(fda_en, nhi_en):
+def ingredient_core(s):
+    """提取成分名的學名核心字（5+ 字母）。"""
+    if not s:
+        return set()
+    return set(re.findall(r'[A-Z]{5,}', s.upper())) - INGREDIENT_NOISE
+
+
+def ingredients_match(fda_ingr, nhi_ingr):
     """
-    核心字交集驗證：兩個英文名是否「相關」。
-    - 雙方都缺資料 → 視為通過（不阻擋）
+    成分核心字交集驗證。
+    FDA「主成分略述」與 NHI「成分」都是國際學名，匹配可靠度高。
+    - 任一方無資料 → 通過（不阻擋，避免漏）
     - 雙方核心字交集 >= 1 → 通過
-    - 否則 → 視為不匹配
+    - 雙方有成分但無交集 → 不匹配（很可能是撞號）
     """
+    f = ingredient_core(fda_ingr)
+    n = ingredient_core(nhi_ingr)
+    if not f or not n:
+        return True
+    return bool(f & n)
+
+
+def names_match(fda_en, nhi_en):
+    """保留作為輔助驗證（商品名也匹配時加分），但不再作為主要過濾"""
     f = core_words(fda_en)
     n = core_words(nhi_en)
     if not f or not n:
-        return True  # 資料不足無法判斷，不擋
+        return True
     return bool(f & n)
 
 
@@ -219,13 +247,14 @@ def main():
     K42_image = detect_field(raw42, "外觀圖檔連結", "圖檔連結")
     print(f"  API 42: lic={K42_lic}  圖檔={K42_image}")
 
-    KN_drugcode = detect_field(raw_nhi, "藥品代號")
-    KN_chapter  = detect_field(raw_nhi, "給付規定章節")
-    KN_link     = detect_field(raw_nhi, "給付規定章節連結")
-    KN_drugurl  = detect_field(raw_nhi, "藥品代碼超連結")
-    KN_chname   = detect_field(raw_nhi, "藥品中文名稱", "中文品名")
-    KN_enname   = detect_field(raw_nhi, "藥品英文名稱", "英文品名")
-    print(f"  NHI: 代號={KN_drugcode}  章節={KN_chapter}  英文名={KN_enname}")
+    KN_drugcode  = detect_field(raw_nhi, "藥品代號")
+    KN_chapter   = detect_field(raw_nhi, "給付規定章節")
+    KN_link      = detect_field(raw_nhi, "給付規定章節連結")
+    KN_drugurl   = detect_field(raw_nhi, "藥品代碼超連結")
+    KN_chname    = detect_field(raw_nhi, "藥品中文名稱", "中文品名")
+    KN_enname    = detect_field(raw_nhi, "藥品英文名稱", "英文品名")
+    KN_ingredient= detect_field(raw_nhi, "成分")
+    print(f"  NHI: 代號={KN_drugcode}  章節={KN_chapter}  英文名={KN_enname}  成分={KN_ingredient}")
 
     # ── Step 2：建立索引 ────────────────────────────────────────
     print("\n【Step 2】建立索引字典...")
@@ -266,13 +295,15 @@ def main():
             enname  = (row.get(KN_enname)  or "").strip() if KN_enname  else ""
             chname  = (row.get(KN_chname)  or "").strip() if KN_chname  else ""
 
+            ingr = (row.get(KN_ingredient) or "").strip() if KN_ingredient else ""
             payload = {
-                "nhiChapter":  chapter,
-                "nhiLink":     link,
-                "nhiDrugCode": code,
-                "nhiDrugUrl":  drugurl,
-                "nhiEnName":   enname,
-                "nhiChName":   chname,
+                "nhiChapter":    chapter,
+                "nhiLink":       link,
+                "nhiDrugCode":   code,
+                "nhiDrugUrl":    drugurl,
+                "nhiEnName":     enname,
+                "nhiChName":     chname,
+                "nhiIngredient": ingr,
             }
             if chapter:
                 nhi_with_chapter += 1
@@ -301,26 +332,35 @@ def main():
         nhi = {}
         # 只有非原料藥才查健保
         if not is_raw:
-            fda_en = drug.get("英文品名") or ""
+            fda_ingr = drug.get(K37_ingredient) if K37_ingredient else ""
+            fda_en   = drug.get("英文品名") or ""
+            best = None
             for k in fda_lic_to_keys(lic):
                 cands = nhi_index.get(k)
                 if not cands:
                     continue
-                # 從候選中找英文名匹配最好的有給付規定的
-                best = None
+                # 第一輪：找有 chapter 且成分匹配的
                 for c in cands:
                     if not c.get("nhiChapter"):
                         continue
-                    if names_match(fda_en, c.get("nhiEnName", "")):
+                    if ingredients_match(fda_ingr, c.get("nhiIngredient", "")):
                         best = c
                         break
                 if best:
-                    nhi = best
                     break
-                # 英文名都沒過 → 記錄被擋筆數（但有候選）
+                # 第二輪：成分匹配（即使沒 chapter，至少對到正確品項就保留代號連結）
+                for c in cands:
+                    if ingredients_match(fda_ingr, c.get("nhiIngredient", "")):
+                        best = c
+                        break
+                if best:
+                    break
+                # 都沒成分匹配 → 記錄擋下次數
                 if any(c.get("nhiChapter") for c in cands):
                     rejected_nm += 1
                     break
+            if best:
+                nhi = best
 
         if nhi.get("nhiChapter"):
             matched_nhi += 1
@@ -379,11 +419,12 @@ def main():
         nhi_in_match = [d for d in matches if d['isNhi']]
         raw_in_match = [d for d in matches if d['isRawMaterial']]
         print(f"     {kw}: 共 {len(matches)} 筆 | 健保 {len(nhi_in_match)} | 原料 {len(raw_in_match)}")
-        for d in matches[:3]:
+        for d in matches[:5]:
             tag = "💚NHI" if d['isNhi'] else ("⚠️原料" if d['isRawMaterial'] else "  一般")
-            print(f"       {tag} {d['licenseNumber']} | {d['chName'][:20]} | {d['enName'][:35]}")
-            if d['isNhi']:
-                print(f"             → NHI {d['nhiDrugCode']} | {d['nhiChapter'][:30]}")
+            print(f"       {tag} {d['licenseNumber']} | {(d['chName'] or '')[:20]:20} | {(d['enName'] or '')[:40]}")
+            print(f"             成分:{(d['ingredients'] or '')[:50]}")
+            if d['nhiDrugCode']:
+                print(f"             → NHI代號:{d['nhiDrugCode']} | 章節:{(d['nhiChapter'] or '無')[:30]}")
 
     print("\n" + "=" * 60)
     print("  完成！drugs_data.json 已就緒。")
