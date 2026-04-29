@@ -259,6 +259,19 @@ footer a { color:var(--primary-blue); text-decoration:none; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 @keyframes spin   { to{transform:rotate(360deg)} }
 
+/* Inline link in info content */
+.inline-link {
+    display:inline-flex; align-items:center; gap:.25rem;
+    margin-left:.5rem; padding:.15rem .55rem;
+    background:rgba(245,158,11,.15); color:var(--amber-text);
+    border:1px solid var(--amber-border); border-radius:6px;
+    text-decoration:none; font-size:.78rem; font-weight:600;
+    transition:all .2s ease;
+}
+.inline-link:hover {
+    background:var(--amber-border); color:white;
+}
+
 /* 章節折疊 */
 .chapter-details {
     margin-top:.75rem; background:rgba(255,255,255,.5);
@@ -493,13 +506,21 @@ function buildCard(drug) {
         .map(s => `<span class="ingredient-pill">${escapeHtml(s)}</span>`)
         .join('') || '<span style="color:var(--text-secondary)">無資料</span>';
 
-    // 仿單按鈕（API 39 提供的連結）
-    const pkgBtns = (drug.packageLinks || []).map((url, i) => `
-        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="link-btn link-btn-primary">
-            📄 藥品仿單${drug.packageLinks.length > 1 ? ' '+(i+1) : ''}
+    // 仿單按鈕：優先用食藥署新版電子仿單平台（穩定）
+    const fdaPkgBtn = drug.fdaPackageUrl ? `
+        <a href="${escapeAttr(drug.fdaPackageUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-primary">
+            📄 電子仿單（新版）
+        </a>` : '';
+
+    // 舊版仿單連結（API 39 的圖檔，部分 404）
+    const oldPkgBtns = (drug.packageLinks || []).map((url, i) => `
+        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="link-btn link-btn-outline">
+            📃 舊版仿單${drug.packageLinks.length > 1 ? ' '+(i+1) : ''}
         </a>`).join('');
 
-    // Google 仿單備援連結（仿單按鈕 404 時的備案）
+    const pkgBtns = fdaPkgBtn + oldPkgBtns;
+
+    // 備援搜尋
     const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(drug.licenseNumber + ' 仿單')}`;
     const fdaSearchUrl    = `https://info.fda.gov.tw/MLMS/H0001.aspx?Type=Lic&LicId=${encodeURIComponent(drug.licenseNumber)}`;
 
@@ -531,28 +552,31 @@ function buildCard(drug) {
             <div class="image-thumbs">${imgLinks}</div>
         </div>` : '';
 
-    // 健保區塊（含章節完整對照）
+    // 健保區塊（顯示章節 + 直接連結 + 折疊對照）
     let nhiSection = '';
-    if (drug.nhiChapter || (drug.chapterDetails && drug.chapterDetails.length)) {
+    if (drug.nhiChapter || drug.nhiChapterLink || (drug.chapterDetails && drug.chapterDetails.length)) {
         const detailsHtml = (drug.chapterDetails || []).map(d => `
-            <details class="chapter-details">
+            <details class="chapter-details" open>
                 <summary><strong>${escapeHtml(d.chapter)}</strong> ${escapeHtml(d.title || '')}</summary>
                 <pre class="chapter-content">${escapeHtml(d.content || '')}</pre>
             </details>
         `).join('');
 
-        const codeInfo = drug.nhiDrugCode
-            ? `<div class="nhi-meta">健保藥品代號：${escapeHtml(drug.nhiDrugCode)}</div>`
+        const chapterLine = drug.nhiChapter
+            ? `<div class="info-content">
+                 給付規定章節：<strong>${escapeHtml(drug.nhiChapter)}</strong>
+                 ${drug.nhiChapterLink ? `<a href="${escapeAttr(drug.nhiChapterLink)}" target="_blank" rel="noopener" class="inline-link">📑 開啟健保署章節 PDF</a>` : ''}
+               </div>`
             : '';
 
-        const chapterShort = drug.nhiChapter
-            ? `<div class="info-content">給付規定章節：<strong>${escapeHtml(drug.nhiChapter)}</strong></div>`
+        const codeInfo = drug.nhiDrugCode
+            ? `<div class="nhi-meta">健保藥品代號：${escapeHtml(drug.nhiDrugCode)}</div>`
             : '';
 
         nhiSection = `
             <div class="nhi-section">
                 <div class="info-label">💰 健保給付規定</div>
-                ${chapterShort}
+                ${chapterLine}
                 ${detailsHtml}
                 ${codeInfo}
             </div>`;
@@ -606,7 +630,7 @@ function buildCard(drug) {
         <a href="${escapeAttr(googleSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-gray">
             🌐 Google 仿單
         </a>
-        ${(pkgBtns || drug.nhiDrugCode) ? '<div class="link-helper-tip">💡 仿單 404 請用「Google 仿單」備援；健保查詢請先複製代號再貼到查詢頁</div>' : ''}
+        <div class="link-helper-tip">💡 建議優先使用「電子仿單（新版）」；健保查詢請先複製代號再貼到查詢頁</div>
     </div>
 </div>`;
 }
