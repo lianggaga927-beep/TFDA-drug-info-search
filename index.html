@@ -219,7 +219,10 @@ h1 { font-size:1.75rem; font-weight:700; color:var(--primary-blue); letter-spaci
     display:inline-flex; align-items:center; gap:.4rem;
     padding:.55rem 1.125rem; border-radius:8px; font-size:.875rem;
     font-weight:500; text-decoration:none; transition:all .2s ease;
+    font-family:inherit; cursor:pointer;
+    border:none;
 }
+button.link-btn { line-height:inherit; }
 .link-btn-primary { background:var(--primary-blue); color:white; }
 .link-btn-primary:hover { background:var(--dark-blue); transform:translateY(-1px); }
 .link-btn-outline {
@@ -506,13 +509,15 @@ function buildCard(drug) {
             🖼️ 外觀圖${drug.imageLinks.length > 1 ? ' '+(i+1) : ''}
         </a>`).join('');
 
-    // 健保連結：改用健保署藥品查詢頁，帶入藥品代號
-    const nhiSearchUrl = drug.nhiDrugCode
-        ? `https://info.nhi.gov.tw/INAE1000/INAE1000S02?n=${encodeURIComponent(drug.nhiDrugCode)}`
-        : '';
-    const nhiBtn = nhiSearchUrl ? `
-        <a href="${escapeAttr(nhiSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
-            📊 健保查詢
+    // 健保查詢：開啟健保署正式查詢頁 + 複製代號按鈕（SPA 無法帶 URL 參數）
+    const nhiQueryUrl = 'https://info.nhi.gov.tw/INAE3000/INAE3000S01';
+    const nhiBtn = drug.nhiDrugCode ? `
+        <button type="button" class="link-btn link-btn-amber"
+                onclick="copyNhiCode('${escapeAttr(drug.nhiDrugCode)}', this)">
+            📋 複製健保代號
+        </button>
+        <a href="${nhiQueryUrl}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
+            🔗 開啟健保查詢頁
         </a>` : '';
 
     // 圖檔區塊
@@ -601,9 +606,36 @@ function buildCard(drug) {
         <a href="${escapeAttr(googleSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-gray">
             🌐 Google 仿單
         </a>
-        ${pkgBtns ? '<div class="link-helper-tip">💡 若仿單連結 404，請改用「Google 仿單」或「食藥署官網」備援</div>' : ''}
+        ${(pkgBtns || drug.nhiDrugCode) ? '<div class="link-helper-tip">💡 仿單 404 請用「Google 仿單」備援；健保查詢請先複製代號再貼到查詢頁</div>' : ''}
     </div>
 </div>`;
+}
+
+// ── 複製健保代號 ──────────────────────────────────────────────
+function copyNhiCode(code, btn) {
+    const orig = btn.innerHTML;
+    navigator.clipboard.writeText(code).then(() => {
+        btn.innerHTML = '✓ 已複製 ' + code;
+        btn.style.background = 'var(--green-border)';
+        btn.style.color = 'white';
+        btn.style.borderColor = 'var(--green-border)';
+        setTimeout(() => {
+            btn.innerHTML = orig;
+            btn.style.background = '';
+            btn.style.color = '';
+            btn.style.borderColor = '';
+        }, 2000);
+    }).catch(() => {
+        // fallback：選取文字讓使用者手動複製
+        const tmp = document.createElement('input');
+        tmp.value = code;
+        document.body.appendChild(tmp);
+        tmp.select();
+        try { document.execCommand('copy'); } catch(e) {}
+        document.body.removeChild(tmp);
+        btn.innerHTML = '已複製: ' + code;
+        setTimeout(() => { btn.innerHTML = orig; }, 2000);
+    });
 }
 
 // ── HTML escape ───────────────────────────────────────────────
