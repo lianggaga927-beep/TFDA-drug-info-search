@@ -697,17 +697,17 @@ function buildCard(drug, keyword = '') {
 
     // 健保查詢按鈕（如果有匹配紀錄）
     const nhiQueryUrl = 'https://info.nhi.gov.tw/INAE3000/INAE3000S01';
-    const nhiBtn = matches.length ? `
-        <a href="${nhiQueryUrl}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
-            🔗 開啟健保查詢頁
-        </a>` : '';
+    // 健保區塊
+    let nhiSection = '';
+    const matches = drug.nhiMatches || [];
 
     // 圖檔區塊已整合至下方按鈕列，此處不重複顯示
     const imageSection = '';
 
-    // 健保區塊
-    let nhiSection = '';
-    const matches = drug.nhiMatches || [];
+    const nhiBtn = matches.length ? `
+        <a href="${nhiQueryUrl}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
+            🔗 開啟健保查詢頁
+        </a>` : '';
 
     if (drug.nhiChapter || drug.nhiChapterLink || (drug.chapterDetails && drug.chapterDetails.length)) {
         // 有特殊給付規定
