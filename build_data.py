@@ -403,11 +403,13 @@ def main():
     # ── Step 3：合併 ────────────────────────────────────────────
     print("\n【Step 3】合併資料...")
     output = []
+    seen_licenses = set()   # 去重：同一許可證字號只保留第一筆（API 37 有重複資料）
     raw_count = matched_nhi = with_chapter = with_chapter_link = 0
     for drug in raw37:
         lic = (drug.get("許可證字號") or "").strip()
-        if not lic:
+        if not lic or lic in seen_licenses:
             continue
+        seen_licenses.add(lic)
 
         is_raw = is_raw_material(drug)
         if is_raw:
