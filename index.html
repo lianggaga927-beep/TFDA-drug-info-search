@@ -256,6 +256,25 @@ footer a { color:var(--primary-blue); text-decoration:none; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 @keyframes spin   { to{transform:rotate(360deg)} }
 
+/* 章節折疊 */
+.chapter-details {
+    margin-top:.75rem; background:rgba(255,255,255,.5);
+    border:1px solid var(--amber-border); border-radius:8px;
+    padding:.5rem .75rem;
+}
+.chapter-details summary {
+    cursor:pointer; font-size:.875rem; color:var(--amber-text);
+    padding:.3rem 0; user-select:none;
+}
+.chapter-details summary:hover { opacity:.85; }
+.chapter-details[open] summary { margin-bottom:.5rem; padding-bottom:.5rem; border-bottom:1px solid var(--amber-border); }
+.chapter-content {
+    font-family:inherit; font-size:.825rem; line-height:1.7;
+    color:var(--amber-text); white-space:pre-wrap; word-wrap:break-word;
+    max-height:400px; overflow-y:auto; margin:0;
+    padding:.5rem 0;
+}
+
 @media (max-width:640px) {
     h1 { font-size:1.375rem; }
     .search-box { flex-direction:column; }
@@ -487,10 +506,13 @@ function buildCard(drug) {
             🖼️ 外觀圖${drug.imageLinks.length > 1 ? ' '+(i+1) : ''}
         </a>`).join('');
 
-    // 健保連結
-    const nhiBtn = (drug.nhiDrugUrl || drug.nhiLink) ? `
-        <a href="${escapeAttr(drug.nhiDrugUrl || drug.nhiLink)}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
-            📊 健保給付連結
+    // 健保連結：改用健保署藥品查詢頁，帶入藥品代號
+    const nhiSearchUrl = drug.nhiDrugCode
+        ? `https://info.nhi.gov.tw/INAE1000/INAE1000S02?n=${encodeURIComponent(drug.nhiDrugCode)}`
+        : '';
+    const nhiBtn = nhiSearchUrl ? `
+        <a href="${escapeAttr(nhiSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
+            📊 健保查詢
         </a>` : '';
 
     // 圖檔區塊
@@ -504,13 +526,39 @@ function buildCard(drug) {
             <div class="image-thumbs">${imgLinks}</div>
         </div>` : '';
 
-    // 健保區塊
-    const nhiSection = drug.nhiChapter ? `
-        <div class="nhi-section">
-            <div class="info-label">💰 健保給付規定</div>
-            <div class="info-content">${escapeHtml(drug.nhiChapter)}</div>
-            <div class="nhi-meta">健保藥品代號：${escapeHtml(drug.nhiDrugCode || '')}</div>
-        </div>` : '';
+    // 健保區塊（含章節完整對照）
+    let nhiSection = '';
+    if (drug.nhiChapter || (drug.chapterDetails && drug.chapterDetails.length)) {
+        const detailsHtml = (drug.chapterDetails || []).map(d => `
+            <details class="chapter-details">
+                <summary><strong>${escapeHtml(d.chapter)}</strong> ${escapeHtml(d.title || '')}</summary>
+                <pre class="chapter-content">${escapeHtml(d.content || '')}</pre>
+            </details>
+        `).join('');
+
+        const codeInfo = drug.nhiDrugCode
+            ? `<div class="nhi-meta">健保藥品代號：${escapeHtml(drug.nhiDrugCode)}</div>`
+            : '';
+
+        const chapterShort = drug.nhiChapter
+            ? `<div class="info-content">給付規定章節：<strong>${escapeHtml(drug.nhiChapter)}</strong></div>`
+            : '';
+
+        nhiSection = `
+            <div class="nhi-section">
+                <div class="info-label">💰 健保給付規定</div>
+                ${chapterShort}
+                ${detailsHtml}
+                ${codeInfo}
+            </div>`;
+    } else if (drug.isNhi) {
+        nhiSection = `
+            <div class="nhi-section" style="background:var(--green-bg);border-color:var(--green-border);">
+                <div class="info-label" style="color:var(--green-text);">💚 健保品項（無特殊給付限制）</div>
+                <div class="info-content" style="color:var(--green-text);">本藥品為健保給付品項，依一般慢性病用藥規範給付。</div>
+                <div class="nhi-meta" style="color:var(--green-text);">健保藥品代號：${escapeHtml(drug.nhiDrugCode || '')}</div>
+            </div>`;
+    }
 
     return `
 <div class="drug-card ${cardClass}">

@@ -28,7 +28,10 @@ jobs:
           cache: 'pip'
           cache-dependency-path: requirements.txt
 
-      - name: Install dependencies
+      - name: Install system dependencies (poppler for pdftotext)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+
+      - name: Install Python dependencies
         run: pip install -r requirements.txt
 
       - name: Build drug database
