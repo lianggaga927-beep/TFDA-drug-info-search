@@ -484,18 +484,22 @@ def main():
     print("\n【Step 5】驗證範例...")
     for kw in ['NORVASC', 'AMLODIPINE', 'ATORVASTATIN', 'METFORMIN']:
         matches = [d for d in output if kw in (d['enName'] or '').upper()]
-        nhi_in = [d for d in matches if d['isNhi']]
-        with_link = [d for d in matches if d.get('nhiChapterLink')]
-        with_details = [d for d in matches if d.get('chapterDetails')]
-        print(f"\n  🔬 {kw}: 共 {len(matches)} | 健保 {len(nhi_in)} | 有章節連結 {len(with_link)} | 有對照詳細 {len(with_details)}")
+        nhi_in  = [d for d in matches if d['isNhi']]
+        print(f"\n  🔬 {kw}: 共 {len(matches)} | 健保 {len(nhi_in)}")
         for d in matches[:3]:
-            tag = "💚NHI" if d['isNhi'] else ("⚗原料" if d['isRawMaterial'] else " 一般")
-            print(f"     {tag} {d['licenseNumber']} | {(d['chName'] or '')[:18]:18}")
-            print(f"          代號:{d['nhiDrugCode'] or '-':12} 章節:{d['nhiChapter'][:18] or '-'}")
-            if d.get('nhiMatches'):
-                print(f"          NHI 匹配 {len(d['nhiMatches'])} 筆：")
-                for nm in d['nhiMatches'][:5]:
-                    print(f"            {nm['code']:14} | {nm['enName'][:40]} | ch:{nm['chapter'][:10] or '-'}")
+            tag      = "💚NHI" if d['isNhi'] else ("⚗原料" if d['isRawMaterial'] else " 一般")
+            ch_name  = (d['chName'] or '')[:18]
+            lic      = d['licenseNumber']
+            print(f"     {tag} {lic} | {ch_name:18}")
+            nhi_list = d.get('nhiMatches', [])
+            if nhi_list:
+                for nm in nhi_list[:5]:
+                    chap = (nm.get('chapter') or '-')[:12]
+                    en   = (nm.get('enName') or nm.get('chName') or '')[:40]
+                    code = nm.get('code', '')
+                    print(f"       代號:{code:14} | {en} | ch:{chap}")
+            else:
+                print("       NHI: 無匹配")
 
     print("\n" + "=" * 60)
     print("  完成！drugs_data.json 已就緒。")
