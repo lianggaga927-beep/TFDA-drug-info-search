@@ -285,6 +285,32 @@ footer a { color:var(--primary-blue); text-decoration:none; }
 }
 @keyframes spin   { to{transform:rotate(360deg)} }
 
+/* NHI 代號表格 */
+.nhi-codes-table {
+    width:100%; border-collapse:collapse;
+    margin-top:.75rem; font-size:.85rem;
+    border:1px solid var(--amber-border);
+    border-radius:8px; overflow:hidden;
+}
+.nhi-codes-table thead th {
+    background:rgba(245,158,11,.12); padding:.4rem .6rem;
+    text-align:left; font-size:.78rem; color:var(--amber-text);
+    border-bottom:1px solid var(--amber-border);
+}
+.nhi-codes-table tbody td {
+    padding:.4rem .6rem;
+    border-bottom:1px solid rgba(245,158,11,.15);
+}
+.nhi-codes-table tbody tr:last-child td { border-bottom:none; }
+.nhi-codes-table tbody tr:hover { background:rgba(245,158,11,.06); }
+.copy-mini {
+    background:none; border:1px solid rgba(245,158,11,.3);
+    border-radius:4px; padding:1px 4px; margin-left:4px;
+    cursor:pointer; font-size:.75rem; vertical-align:middle;
+    transition:all .2s;
+}
+.copy-mini:hover { background:var(--amber-border); border-color:var(--amber-border); }
+
 /* Inline link in info content */
 .inline-link {
     display:inline-flex; align-items:center; gap:.25rem;
@@ -600,6 +626,29 @@ function renderResults() {
 }
 
 // ── Card Builder ──────────────────────────────────────────────
+function buildNhiCodesTable(matches, isGreen = false) {
+    if (!matches || !matches.length) return '';
+    const borderColor = isGreen ? 'var(--green-border)' : 'var(--amber-border)';
+    const textColor   = isGreen ? 'var(--green-text)' : 'var(--amber-text)';
+    const rows = matches.map(m => `
+        <tr>
+            <td style="font-weight:600;font-family:monospace;white-space:nowrap;">
+                ${escapeHtml(m.code)}
+                <button type="button" class="copy-mini" onclick="copyNhiCode('${escapeAttr(m.code)}', this)" title="複製代號">📋</button>
+            </td>
+            <td style="font-size:.8rem;">${escapeHtml(m.enName || m.chName || '')}</td>
+            <td style="font-size:.78rem;color:${textColor};">${m.chapter ? escapeHtml(m.chapter) : '—'}</td>
+        </tr>
+    `).join('');
+    return `
+        <table class="nhi-codes-table" style="border-color:${borderColor};">
+            <thead><tr>
+                <th>健保代號</th><th>品名</th><th>章節</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`;
+}
+
 function highlight(text, keyword) {
     if (!keyword || !text) return escapeHtml(text || '');
     // 先 escape，再高亮（不二次 escape）
@@ -646,13 +695,9 @@ function buildCard(drug, keyword = '') {
             🖼️ 外觀圖${drug.imageLinks.length > 1 ? ' '+(i+1) : ''}
         </a>`).join('');
 
-    // 健保查詢：開啟健保署正式查詢頁 + 複製代號按鈕（SPA 無法帶 URL 參數）
+    // 健保查詢按鈕（如果有匹配紀錄）
     const nhiQueryUrl = 'https://info.nhi.gov.tw/INAE3000/INAE3000S01';
-    const nhiBtn = drug.nhiDrugCode ? `
-        <button type="button" class="link-btn link-btn-amber"
-                onclick="copyNhiCode('${escapeAttr(drug.nhiDrugCode)}', this)">
-            📋 複製健保代號
-        </button>
+    const nhiBtn = matches.length ? `
         <a href="${nhiQueryUrl}" target="_blank" rel="noopener" class="link-btn link-btn-amber">
             🔗 開啟健保查詢頁
         </a>` : '';
@@ -660,9 +705,12 @@ function buildCard(drug, keyword = '') {
     // 圖檔區塊已整合至下方按鈕列，此處不重複顯示
     const imageSection = '';
 
-    // 健保區塊（顯示章節 + 直接連結 + 折疊對照）
+    // 健保區塊
     let nhiSection = '';
+    const matches = drug.nhiMatches || [];
+
     if (drug.nhiChapter || drug.nhiChapterLink || (drug.chapterDetails && drug.chapterDetails.length)) {
+        // 有特殊給付規定
         const detailsHtml = (drug.chapterDetails || []).map(d => `
             <details class="chapter-details" open>
                 <summary><strong>${escapeHtml(d.chapter)}</strong> ${escapeHtml(d.title || '')}</summary>
@@ -670,11 +718,8 @@ function buildCard(drug, keyword = '') {
             </details>
         `).join('');
 
-        // 章節連結可能有多個（逗號分隔），各自建立獨立按鈕
         const chapterLinks = (drug.nhiChapterLink || '')
-            .split(',')
-            .map(s => s.trim())
-            .filter(Boolean);
+            .split(',').map(s => s.trim()).filter(Boolean);
         const chapterLinkBtns = chapterLinks.map((url, i) =>
             `<a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="inline-link">📑 章節 PDF${chapterLinks.length > 1 ? ' '+(i+1) : ''}</a>`
         ).join(' ');
@@ -685,23 +730,20 @@ function buildCard(drug, keyword = '') {
                </div>`
             : '';
 
-        const codeInfo = drug.nhiDrugCode
-            ? `<div class="nhi-meta">健保藥品代號：${escapeHtml(drug.nhiDrugCode)}</div>`
-            : '';
-
         nhiSection = `
             <div class="nhi-section">
                 <div class="info-label">💰 健保給付規定</div>
                 ${chapterLine}
                 ${detailsHtml}
-                ${codeInfo}
+                ${buildNhiCodesTable(matches)}
             </div>`;
-    } else if (drug.isNhi) {
+    } else if (drug.isNhi && matches.length) {
+        // 健保品項但無特殊規定
         nhiSection = `
             <div class="nhi-section" style="background:var(--green-bg);border-color:var(--green-border);">
                 <div class="info-label" style="color:var(--green-text);">💚 健保品項（無特殊給付限制）</div>
                 <div class="info-content" style="color:var(--green-text);">本藥品為健保給付品項，依一般慢性病用藥規範給付。</div>
-                <div class="nhi-meta" style="color:var(--green-text);">健保藥品代號：${escapeHtml(drug.nhiDrugCode || '')}</div>
+                ${buildNhiCodesTable(matches, true)}
             </div>`;
     }
 

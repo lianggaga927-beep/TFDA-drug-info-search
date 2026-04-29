@@ -415,36 +415,43 @@ def main():
         if is_raw:
             raw_count += 1
 
-        nhi = {}
+        # 收集所有匹配的 NHI 紀錄（同一許可證可能有多個包裝規格）
+        nhi_matches = []
+        nhi_primary = {}   # 主要紀錄（用於健保區塊顯示章節）
         if not is_raw:
             fda_ingr = drug.get(K37_ingredient) if K37_ingredient else ""
-            best = best_active = None
+            seen_codes = set()
             for k in fda_lic_to_keys(lic):
-                cands = nhi_index.get(k, [])
-                if not cands:
-                    continue
-                for c in cands:
+                for c in nhi_index.get(k, []):
+                    code = c.get("nhiDrugCode", "")
+                    if not code or code in seen_codes:
+                        continue
                     if c.get("isExpired"):
                         continue
                     if not ingredients_match(fda_ingr, c.get("nhiIngredient", "")):
                         continue
-                    if c.get("nhiChapter") and not best:
-                        best = c
-                    if not best_active:
-                        best_active = c
-                if best:
-                    break
-            nhi = best or best_active or {}
+                    seen_codes.add(code)
+                    nhi_matches.append({
+                        "code":    code,
+                        "enName":  c.get("nhiEnName", ""),
+                        "chName":  c.get("nhiChName", ""),
+                        "chapter": c.get("nhiChapter", ""),
+                        "chapterLink": c.get("nhiChapterLink", ""),
+                        "drugUrl": c.get("nhiDrugUrl", ""),
+                    })
+                    # 主要紀錄：優先取有給付規定的
+                    if not nhi_primary or (c.get("nhiChapter") and not nhi_primary.get("nhiChapter")):
+                        nhi_primary = c
 
-        is_nhi = bool(nhi.get("nhiDrugCode")) and not nhi.get("isExpired", False)
+        is_nhi = len(nhi_matches) > 0
         if is_nhi:
             matched_nhi += 1
-        if nhi.get("nhiChapter"):
+        if nhi_primary.get("nhiChapter"):
             with_chapter += 1
-        if nhi.get("nhiChapterLink"):
+        if nhi_primary.get("nhiChapterLink"):
             with_chapter_link += 1
 
-        chapter_details = lookup_chapter(nhi.get("nhiChapter", ""), nhi_chapters)
+        chapter_details = lookup_chapter(nhi_primary.get("nhiChapter", ""), nhi_chapters)
 
         # 食藥署新版電子仿單連結（穩定）— 每張許可證都有
         fda_package_url = FDA_PACKAGE_INSERT_URL.format(license=lic)
@@ -457,13 +464,12 @@ def main():
             "indication":       (drug.get(K37_indication) or "").strip() if K37_indication else "",
             "ingredients":      (drug.get(K37_ingredient) or "").strip() if K37_ingredient else "",
             "usage":            (drug.get(K37_usage)      or "").strip() if K37_usage      else "",
-            "packageLinks":     pkg_dict.get(lic, []),         # API 39 的舊連結（可能 404）
-            "fdaPackageUrl":    fda_package_url,                # 食藥署新版仿單平台
+            "packageLinks":     pkg_dict.get(lic, []),
+            "fdaPackageUrl":    fda_package_url,
             "imageLinks":       img_dict.get(lic, []),
-            "nhiChapter":       nhi.get("nhiChapter", ""),
-            "nhiChapterLink":   nhi.get("nhiChapterLink", ""),  # 章節 PDF 連結
-            "nhiDrugCode":      nhi.get("nhiDrugCode", ""),
-            "nhiDrugUrl":       nhi.get("nhiDrugUrl", ""),      # 藥品超連結
+            "nhiChapter":       nhi_primary.get("nhiChapter", ""),
+            "nhiChapterLink":   nhi_primary.get("nhiChapterLink", ""),
+            "nhiMatches":       nhi_matches,     # 所有匹配的 NHI 品項（含代號、品名、規格）
             "chapterDetails":   chapter_details,
             "isRawMaterial":    is_raw,
             "isNhi":            is_nhi,
@@ -501,10 +507,10 @@ def main():
             tag = "💚NHI" if d['isNhi'] else ("⚗原料" if d['isRawMaterial'] else " 一般")
             print(f"     {tag} {d['licenseNumber']} | {(d['chName'] or '')[:18]:18}")
             print(f"          代號:{d['nhiDrugCode'] or '-':12} 章節:{d['nhiChapter'][:18] or '-'}")
-            if d.get('nhiChapterLink'):
-                print(f"          章節連結:{d['nhiChapterLink'][:80]}")
-            if d.get('chapterDetails'):
-                print(f"          章節對照:{len(d['chapterDetails'])} 段，第一段標題：{d['chapterDetails'][0]['title'][:40]}")
+            if d.get('nhiMatches'):
+                print(f"          NHI 匹配 {len(d['nhiMatches'])} 筆：")
+                for nm in d['nhiMatches'][:5]:
+                    print(f"            {nm['code']:14} | {nm['enName'][:40]} | ch:{nm['chapter'][:10] or '-'}")
 
     print("\n" + "=" * 60)
     print("  完成！drugs_data.json 已就緒。")
