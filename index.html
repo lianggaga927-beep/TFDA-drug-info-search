@@ -257,6 +257,32 @@ footer {
 footer a { color:var(--primary-blue); text-decoration:none; }
 
 @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* 劑型篩選列 */
+.dosage-row {
+    display:flex; flex-wrap:wrap; gap:.4rem;
+    align-items:center; margin-top:.5rem;
+}
+.dosage-label {
+    font-size:.825rem; color:var(--text-secondary); margin-right:.25rem;
+}
+.dosage-btn {
+    padding:.3rem .7rem; border:1.5px solid var(--border-color);
+    background:white; border-radius:16px; font-size:.78rem;
+    cursor:pointer; font-family:inherit; transition:all .2s ease;
+    color:var(--text-secondary);
+}
+.dosage-btn:hover { border-color:var(--secondary-blue); color:var(--primary-blue); }
+.dosage-btn.active {
+    background:var(--secondary-blue); color:white; border-color:var(--secondary-blue);
+}
+
+/* 關鍵字高亮 */
+.hl {
+    background:#fef08a; color:#713f12;
+    border-radius:3px; padding:0 2px;
+    font-weight:600;
+}
 @keyframes spin   { to{transform:rotate(360deg)} }
 
 /* Inline link in info content */
@@ -328,6 +354,10 @@ footer a { color:var(--primary-blue); text-decoration:none; }
             <button class="filter-btn" data-filter="raw">含原料藥</button>
         </div>
 
+        <div class="dosage-row" id="dosageRow" style="display:none;">
+            <span class="dosage-label">💊 劑型：</span>
+            <button class="dosage-btn active" data-dosage="all">全部</button>
+        </div>
         <p class="search-hint">💡 預設僅顯示健保品項。可切換篩選條件。搜尋結果最多 30 筆。</p>
         <div class="init-banner" id="initBanner">
             <div class="mini-spinner"></div>
@@ -372,7 +402,9 @@ const filterBtns       = document.querySelectorAll('.filter-btn');
 
 let drugDatabase = [];
 let currentFilter = 'nhi';      // 預設健保品項
-let lastResults = null;          // 快取上次搜尋結果以便切換篩選即時生效
+let currentDosage = 'all';       // 劑型篩選
+let lastResults   = null;        // 快取上次搜尋結果以便切換篩選即時生效
+let lastKeyword   = '';          // 快取關鍵字供高亮使用
 
 const showError = msg => { errorMsg.textContent = msg; errorMsg.classList.add('active'); };
 const hideError = ()  => errorMsg.classList.remove('active');
@@ -420,6 +452,79 @@ filterBtns.forEach(btn => {
     });
 });
 
+// ── Dosage filter（動態產生按鈕）────────────────────────────
+const dosageRow = document.getElementById('dosageRow');
+
+function buildDosageBtns(results) {
+    // 收集結果中出現的所有劑型
+    const counts = {};
+    results.forEach(d => {
+        const raw = (d.licenseType || '').replace('劑', '').trim();
+        // 從許可證種類或中文品名猜劑型（API 37 有「劑型」資料在 licenseType 有時是製劑種類）
+        // 改從中文品名、英文品名中的關鍵字萃取
+        const dosages = extractDosage(d);
+        dosages.forEach(ds => { counts[ds] = (counts[ds] || 0) + 1; });
+    });
+
+    // 清空並重建
+    dosageRow.innerHTML = '<span class="dosage-label">💊 劑型：</span>';
+    const allBtn = document.createElement('button');
+    allBtn.className = 'dosage-btn active';
+    allBtn.dataset.dosage = 'all';
+    allBtn.textContent = `全部（${results.length}）`;
+    dosageRow.appendChild(allBtn);
+
+    Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([ds, cnt]) => {
+            const btn = document.createElement('button');
+            btn.className = 'dosage-btn';
+            btn.dataset.dosage = ds;
+            btn.textContent = `${ds}（${cnt}）`;
+            dosageRow.appendChild(btn);
+        });
+
+    // 劑型按鈕事件
+    dosageRow.querySelectorAll('.dosage-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            dosageRow.querySelectorAll('.dosage-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentDosage = btn.dataset.dosage;
+            if (lastResults) renderResults();
+        });
+    });
+
+    currentDosage = 'all';
+    dosageRow.style.display = Object.keys(counts).length > 0 ? 'flex' : 'none';
+}
+
+function extractDosage(drug) {
+    // 從中英文品名 + 許可證種類中偵測劑型關鍵字
+    const text = ((drug.chName || '') + ' ' + (drug.enName || '') + ' ' + (drug.licenseType || '')).toUpperCase();
+    const map = [
+        ['注射劑', ['INJECTION', 'INJ', 'INFUSION', '注射']],
+        ['口服錠', ['TABLET', 'TABLETS', ' TAB', 'FILM-COATED', 'F.C.', 'F.C.TAB', '錠']],
+        ['膠囊',   ['CAPSULE', 'CAPSULES', 'CAP', '膠囊']],
+        ['口服液', ['SOLUTION', 'SUSPENSION', 'SYRUP', 'ORAL', '液', '糖漿', '懸液']],
+        ['外用製劑',['CREAM', 'OINTMENT', 'GEL', 'PATCH', 'LOTION', 'SPRAY', '乳膏', '軟膏', '貼片', '外用']],
+        ['吸入劑', ['INHALER', 'INHALATION', '吸入']],
+        ['粉劑',   ['POWDER', '粉劑', '凍晶']],
+    ];
+    const found = [];
+    for (const [label, keywords] of map) {
+        if (keywords.some(kw => text.includes(kw))) {
+            found.push(label);
+            break; // 一筆藥只歸一類
+        }
+    }
+    return found.length ? found : ['其他'];
+}
+
+function applyDosage(arr) {
+    if (currentDosage === 'all') return arr;
+    return arr.filter(d => extractDosage(d).includes(currentDosage));
+}
+
 // ── Search ────────────────────────────────────────────────────
 function searchDrugs() {
     hideError();
@@ -433,10 +538,12 @@ function searchDrugs() {
 
     setTimeout(() => {
         const lower = keyword.toLowerCase();
+        lastKeyword = keyword;   // 供高亮使用
         lastResults = drugDatabase.filter(d =>
             (d.chName || '').toLowerCase().includes(lower) ||
             (d.enName || '').toLowerCase().includes(lower)
         );
+        buildDosageBtns(lastResults);  // 動態產生劑型按鈕
         loading.classList.remove('active');
         searchBtn.disabled = false;
         renderResults();
@@ -458,7 +565,7 @@ function applyFilter(arr) {
 function renderResults() {
     if (!lastResults) return;
 
-    const filtered = applyFilter(lastResults);
+    const filtered = applyDosage(applyFilter(lastResults));
 
     // 排序：健保品項在前，原料藥在後
     filtered.sort((a, b) => {
@@ -481,18 +588,28 @@ function renderResults() {
         const filterLabel = {
             'nhi':'健保品項', 'all':'全部藥品', 'non-nhi':'未納健保', 'raw':'原料藥'
         }[currentFilter];
+        const dosageLabel = currentDosage !== 'all' ? ` · 劑型：<strong>${currentDosage}</strong>` : '';
         resultsMeta.innerHTML = `
-            篩選範圍：<strong>${filterLabel}</strong> · 
+            篩選範圍：<strong>${filterLabel}</strong>${dosageLabel} · 
             符合 ${filtered.length.toLocaleString()} 筆
             ${filtered.length > 30 ? `（顯示前 30 筆，請使用更精確的關鍵字）` : ''}
         `;
-        resultsContainer.innerHTML = limited.map(buildCard).join('');
+        resultsContainer.innerHTML = limited.map(d => buildCard(d, lastKeyword)).join('');
     }
     resultsSection.classList.add('active');
 }
 
 // ── Card Builder ──────────────────────────────────────────────
-function buildCard(drug) {
+function highlight(text, keyword) {
+    if (!keyword || !text) return escapeHtml(text || '');
+    // 先 escape，再高亮（不二次 escape）
+    const escaped = escapeHtml(text);
+    const escapedKw = escapeHtml(keyword);
+    const re = new RegExp(escapedKw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    return escaped.replace(re, m => `<span class="hl">${m}</span>`);
+}
+
+function buildCard(drug, keyword = '') {
     const cardClass = drug.isNhi ? 'is-nhi' : (drug.isRawMaterial ? 'is-raw' : '');
 
     // Badges
@@ -503,7 +620,7 @@ function buildCard(drug) {
     // Ingredients
     const pills = (drug.ingredients || '')
         .split(/[;；]/).map(s => s.trim()).filter(Boolean)
-        .map(s => `<span class="ingredient-pill">${escapeHtml(s)}</span>`)
+        .map(s => `<span class="ingredient-pill">${highlight(s, keyword)}</span>`)
         .join('') || '<span style="color:var(--text-secondary)">無資料</span>';
 
     // 仿單按鈕：優先用食藥署新版電子仿單平台（穩定）
@@ -593,8 +710,8 @@ function buildCard(drug) {
     <div class="drug-header">
         <div class="drug-name-row">
             <div style="flex:1;min-width:200px;">
-                <div class="drug-name-ch">${escapeHtml(drug.chName || '無中文品名')}</div>
-                <div class="drug-name-en">${escapeHtml(drug.enName || '無英文品名')}</div>
+                <div class="drug-name-ch">${highlight(drug.chName || '無中文品名', keyword)}</div>
+                <div class="drug-name-en">${highlight(drug.enName || '無英文品名', keyword)}</div>
             </div>
             <div style="display:flex;gap:.4rem;flex-wrap:wrap;">${badges}</div>
         </div>
