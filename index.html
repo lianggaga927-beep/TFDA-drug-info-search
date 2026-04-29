@@ -522,7 +522,6 @@ function buildCard(drug) {
 
     // 備援搜尋
     const googleSearchUrl = `https://www.google.com/search?q=${encodeURIComponent(drug.licenseNumber + ' 仿單')}`;
-    const fdaSearchUrl    = `https://info.fda.gov.tw/MLMS/H0001.aspx?Type=Lic&LicId=${encodeURIComponent(drug.licenseNumber)}`;
 
     // 外觀按鈕
     const imgBtns = (drug.imageLinks || []).map((url, i) => `
@@ -541,16 +540,8 @@ function buildCard(drug) {
             🔗 開啟健保查詢頁
         </a>` : '';
 
-    // 圖檔區塊
-    const imgLinks = (drug.imageLinks || []).map((url, i) => `
-        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="image-thumb-link">
-            🖼 圖檔${drug.imageLinks.length > 1 ? ' '+(i+1) : ''}
-        </a>`).join('');
-    const imageSection = imgLinks ? `
-        <div class="image-section">
-            <div class="info-label">🖼️ 藥品外觀圖檔</div>
-            <div class="image-thumbs">${imgLinks}</div>
-        </div>` : '';
+    // 圖檔區塊已整合至下方按鈕列，此處不重複顯示
+    const imageSection = '';
 
     // 健保區塊（顯示章節 + 直接連結 + 折疊對照）
     let nhiSection = '';
@@ -612,11 +603,6 @@ function buildCard(drug) {
         <div class="ingredients-wrap">${pills}</div>
     </div>
 
-    <div class="info-section">
-        <div class="info-label">📝 用法用量</div>
-        <div class="info-content">${escapeHtml(drug.usage || '無資料')}</div>
-    </div>
-
     ${nhiSection}
     ${imageSection}
 
@@ -624,9 +610,6 @@ function buildCard(drug) {
         ${pkgBtns}
         ${imgBtns}
         ${nhiBtn}
-        <a href="${escapeAttr(fdaSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-gray">
-            🔍 食藥署官網
-        </a>
         <a href="${escapeAttr(googleSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-gray">
             🌐 Google 仿單
         </a>
