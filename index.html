@@ -553,10 +553,18 @@ function buildCard(drug) {
             </details>
         `).join('');
 
+        // 章節連結可能有多個（逗號分隔），各自建立獨立按鈕
+        const chapterLinks = (drug.nhiChapterLink || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+        const chapterLinkBtns = chapterLinks.map((url, i) =>
+            `<a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="inline-link">📑 章節 PDF${chapterLinks.length > 1 ? ' '+(i+1) : ''}</a>`
+        ).join(' ');
         const chapterLine = drug.nhiChapter
             ? `<div class="info-content">
                  給付規定章節：<strong>${escapeHtml(drug.nhiChapter)}</strong>
-                 ${drug.nhiChapterLink ? `<a href="${escapeAttr(drug.nhiChapterLink)}" target="_blank" rel="noopener" class="inline-link">📑 開啟健保署章節 PDF</a>` : ''}
+                 ${chapterLinkBtns}
                </div>`
             : '';
 
