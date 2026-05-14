@@ -1,0 +1,26 @@
+{
+  "name": "藥品資訊查詢系統",
+  "short_name": "藥品查詢",
+  "description": "整合食藥署與健保署開放資料，適用醫院藥師臨床查詢",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "lang": "zh-TW",
+  "orientation": "any",
+  "categories": ["medical", "health"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>藥品資訊查詢系統 - 食藥署資料整合</title>
+<meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="藥品查詢">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -349,9 +355,47 @@ footer a { color:var(--primary-blue); text-decoration:none; }
     #searchBtn { width:100%; }
     .drug-card { padding:1.25rem; }
 }
+
+/* PWA Banners */
+.pwa-banner {
+    display:none; padding:.6rem 1.25rem;
+    font-size:.875rem; align-items:center;
+    justify-content:center; gap:.875rem; flex-wrap:wrap;
+}
+#offlineBanner {
+    background:#fef3c7; border-bottom:1px solid #f59e0b;
+    color:#92400e;
+}
+#installBanner {
+    background:var(--lighter-blue); border-bottom:1px solid var(--light-blue);
+    color:var(--primary-blue);
+}
+.pwa-action-btn {
+    padding:.35rem .875rem; border:none; border-radius:8px;
+    font-size:.825rem; font-weight:600; cursor:pointer; font-family:inherit;
+}
+.pwa-install-btn { background:var(--primary-blue); color:white; }
+.pwa-install-btn:hover { background:var(--dark-blue); }
+.pwa-dismiss-btn {
+    background:none; color:var(--text-secondary);
+    font-size:1rem; padding:.2rem .5rem;
+}
 </style>
 </head>
 <body>
+
+<!-- PWA：離線模式提示 -->
+<div id="offlineBanner" class="pwa-banner" role="status">
+    ⚠️ 離線模式 · 使用快取資料（可能非最新版本）
+</div>
+
+<!-- PWA：安裝提示 -->
+<div id="installBanner" class="pwa-banner" role="complementary">
+    <span>📲 可將本系統安裝至主畫面，支援離線查詢</span>
+    <button class="pwa-action-btn pwa-install-btn" id="installBtn">安裝 App</button>
+    <button class="pwa-action-btn pwa-dismiss-btn" id="dismissInstallBtn" aria-label="關閉">✕</button>
+</div>
+
 <header>
     <div class="header-content">
         <div>
@@ -829,6 +873,53 @@ searchBtn.addEventListener('click', searchDrugs);
 searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchDrugs(); });
 
 initDatabase();
+
+// ── PWA：Service Worker ────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+        .catch(err => console.warn('SW 註冊失敗:', err));
+
+    navigator.serviceWorker.addEventListener('message', e => {
+        if (e.data?.type === 'OFFLINE_MODE') {
+            document.getElementById('offlineBanner').style.display = 'flex';
+        }
+    });
+}
+
+// ── PWA：離線 / 上線狀態偵測 ──────────────────────────────────
+const offlineBanner = document.getElementById('offlineBanner');
+window.addEventListener('offline', () => { offlineBanner.style.display = 'flex'; });
+window.addEventListener('online',  () => { offlineBanner.style.display = 'none'; });
+
+// ── PWA：安裝提示 ──────────────────────────────────────────────
+let deferredInstallPrompt = null;
+const installBanner  = document.getElementById('installBanner');
+const installBtn     = document.getElementById('installBtn');
+const dismissInstallBtn = document.getElementById('dismissInstallBtn');
+
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBanner.style.display = 'flex';
+});
+
+installBtn.addEventListener('click', () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(() => {
+        deferredInstallPrompt = null;
+        installBanner.style.display = 'none';
+    });
+});
+
+dismissInstallBtn.addEventListener('click', () => {
+    installBanner.style.display = 'none';
+});
+
+window.addEventListener('appinstalled', () => {
+    installBanner.style.display = 'none';
+    deferredInstallPrompt = null;
+});
 </script>
 </body>
 </html>
