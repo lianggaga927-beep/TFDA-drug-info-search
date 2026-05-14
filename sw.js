@@ -1,6 +1,6 @@
-const STATIC_CACHE = 'tfda-static-v1';
-const DATA_CACHE   = 'tfda-data-v1';
-const FONT_CACHE   = 'tfda-fonts-v1';
+const STATIC_CACHE = 'tfda-static-v2';
+const DATA_CACHE   = 'tfda-data-v2';
+const FONT_CACHE   = 'tfda-fonts-v2';
 const ALL_CACHES   = [STATIC_CACHE, DATA_CACHE, FONT_CACHE];
 
 // ── Install：只快取輕量靜態資源，不預取 46MB JSON ──────────────────
