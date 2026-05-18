@@ -144,16 +144,32 @@ h1 { font-size:1.75rem; font-weight:700; color:var(--primary-blue); letter-spaci
     background:var(--bg-white); border-radius:16px;
     padding:1.75rem 2rem; margin-bottom:1.25rem;
     box-shadow:var(--shadow-lg); border:1px solid var(--border-color);
-    transition:transform .2s ease, box-shadow .2s ease;
+    transition:box-shadow .2s ease;
 }
-.drug-card:hover { transform:translateY(-2px); box-shadow:0 14px 30px -5px rgba(37,99,235,.15); }
+.drug-card:hover { box-shadow:0 14px 30px -5px rgba(37,99,235,.15); }
 .drug-card.is-nhi { border-left:4px solid var(--green-border); }
 .drug-card.is-raw { opacity:.85; border-left:4px solid var(--gray-border); }
 
 .drug-header {
+    padding-bottom:.75rem;
+    cursor:pointer; user-select:none;
+}
+.drug-card.expanded .drug-header {
     border-bottom:2px solid var(--lighter-blue);
     padding-bottom:1rem; margin-bottom:1.25rem;
 }
+.drug-header:hover .drug-name-ch { color:var(--dark-blue); }
+
+.drug-body { display:none; }
+.drug-card.expanded .drug-body { display:block; animation:fadeIn .25s ease-out; }
+
+.drug-chevron {
+    font-size:.8rem; color:var(--text-secondary);
+    transition:transform .25s ease; flex-shrink:0;
+    margin-left:.25rem; margin-top:.1rem;
+}
+.drug-card.expanded .drug-chevron { transform:rotate(180deg); }
+
 .drug-name-row { display:flex; align-items:flex-start; gap:.75rem; flex-wrap:wrap; }
 .drug-name-ch { font-size:1.4rem; font-weight:700; color:var(--primary-blue); }
 .drug-name-en { font-size:1rem; color:var(--text-secondary); font-style:italic; margin:.2rem 0 .5rem; }
@@ -793,40 +809,51 @@ function buildCard(drug, keyword = '') {
 
     return `
 <div class="drug-card ${cardClass}">
-    <div class="drug-header">
+    <div class="drug-header" onclick="toggleCard(this)">
         <div class="drug-name-row">
             <div style="flex:1;min-width:200px;">
                 <div class="drug-name-ch">${highlight(drug.chName || '無中文品名', keyword)}</div>
                 <div class="drug-name-en">${highlight(drug.enName || '無英文品名', keyword)}</div>
             </div>
-            <div style="display:flex;gap:.4rem;flex-wrap:wrap;">${badges}</div>
+            <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;">
+                ${badges}
+                <span class="drug-chevron">▼</span>
+            </div>
         </div>
-        <span class="badge-license">📋 ${escapeHtml(drug.licenseNumber)}${drug.licenseType ? ' · '+escapeHtml(drug.licenseType) : ''}</span>
     </div>
 
-    <div class="info-section">
-        <div class="info-label">💊 適應症</div>
-        <div class="info-content">${escapeHtml(drug.indication || '無資料')}</div>
-    </div>
+    <div class="drug-body">
+        <span class="badge-license" style="display:inline-block;margin-bottom:1rem;">📋 ${escapeHtml(drug.licenseNumber)}${drug.licenseType ? ' · '+escapeHtml(drug.licenseType) : ''}</span>
 
-    <div class="info-section">
-        <div class="info-label">🧪 主要成分</div>
-        <div class="ingredients-wrap">${pills}</div>
-    </div>
+        <div class="info-section">
+            <div class="info-label">💊 適應症</div>
+            <div class="info-content">${escapeHtml(drug.indication || '無資料')}</div>
+        </div>
 
-    ${nhiSection}
-    ${imageSection}
+        <div class="info-section">
+            <div class="info-label">🧪 主要成分</div>
+            <div class="ingredients-wrap">${pills}</div>
+        </div>
 
-    <div class="links-row">
-        ${pkgBtns}
-        ${imgBtns}
-        ${nhiBtn}
-        <a href="${escapeAttr(googleSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-gray">
-            🌐 Google 仿單
-        </a>
-        <div class="link-helper-tip">💡 建議優先使用「電子仿單（新版）」；健保查詢請先複製代號再貼到查詢頁</div>
+        ${nhiSection}
+        ${imageSection}
+
+        <div class="links-row">
+            ${pkgBtns}
+            ${imgBtns}
+            ${nhiBtn}
+            <a href="${escapeAttr(googleSearchUrl)}" target="_blank" rel="noopener" class="link-btn link-btn-gray">
+                🌐 Google 仿單
+            </a>
+            <div class="link-helper-tip">💡 建議優先使用「電子仿單（新版）」；健保查詢請先複製代號再貼到查詢頁</div>
+        </div>
     </div>
 </div>`;
+}
+
+// ── 展開 / 收合卡片 ───────────────────────────────────────────
+function toggleCard(headerEl) {
+    headerEl.closest('.drug-card').classList.toggle('expanded');
 }
 
 // ── 複製健保代號 ──────────────────────────────────────────────
